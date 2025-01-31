@@ -186,6 +186,52 @@ class open_digraph:  # for open directed graph
         self.nodes[new_id] = new_node
         return new_id
 
+    # removes edge from src to tgt
+    def remove_edge(self, src, tgt):
+        '''
+        src: int; id of src
+        tgt: int; id of tgt node
+        removes edge from src to tgt
+        '''
+        s = self.get_node_by_id(src)
+        t = self.get_node_by_id(tgt)
+        s.remove_child_once(tgt)
+        t.remove_parent_once(src)
+
+    def remove_parallel_edges(self, src, tgt):
+        '''
+        src: int; id of src node
+        tgt: int; id of tgt node
+        removes all edges from src to tgt 
+        '''
+        s = self.get_node_by_id(src)
+        t = self.get_node_by_id(tgt)
+        s.remove_child_id(tgt)
+        t.remove_parent_id(src)
+
+    def remove_node_by_id (self, node_id):
+        '''
+        node_id: int
+        removes node from the graph
+        '''
+        node = self.nodes.pop(node_id)
+        for parent in node.get_parents():
+            self.remove_parallel_edges(parent, node_id)
+        for child in node.get_children():
+            self.remove_parallel_edges(node_id, child)
+
+    def remove_edges(self, edges):
+        for src, tgt in edges:
+            self.remove_edge(src, tgt)
+
+    def remove_several_parallel_edges(self, edges):
+        for src, tgt in edges:
+            self.remove_parallel_edges(src, tgt)
+
+    def remove_nodes_by_id(self, node_ids):
+        for node_id in node_ids:
+            self.remove_node_by_id(node_id)
+
     def add_input_node(self, id): 
         '''
         id : int
@@ -209,50 +255,6 @@ class open_digraph:  # for open directed graph
             self.add_output_id(self.add_node(parents={id: 1}))
         else: 
             raise ValueError("add_output_node : Invalid given id")
-                    # methode remove
-    def remove_edge(self, src, tgt ):
-        if src in self.nodes and tgt in self.nodes:
-            self.nodes[src].remove_child_once(tgt)
-            self.nodes[tgt].remove_parent_once(src)
-
-    def remove_parallel_edges(self, src, tgt):
-        if src in self.nodes and tgt in self.nodes:
-            self.nodes[src].remove_child_id(tgt)
-            self.nodes[tgt].remove_parent_id(src)
-
-
-    def remove_node_by_id (self, node_id):
-          if node_id in self.nodes:
-            #enleves tous les edges en lien avec le noeuds
-            aretirer = self.nodes[node_id]
-            for parent_id in list(aretirer.get_parents().keys()):
-                self.remove_parallel_edges(parent_id, node_id)
-            for child_id in list(aretirer.get_children().keys()):
-                self.remove_parallel_edges(node_id, child_id)
-            # enleve le noeud du graphe
-            self.nodes.pop(node_id)
-            # retire le noues de inputs et outputs si necessaire
-            if node_id in self.inputs:
-                self.inputs.remove(node_id)
-            if node_id in self.outputs:
-                self.outputs.remove(node_id)
-    
-
-    def __delitem__(self, node_id):
-        self.remove_node_by_id(node_id)
-
-
-    def remove_edges(self, edges):
-        for src, tgt in edges:
-            self.remove_edge(src, tgt)
-
-    def remove_several_parallel_edges(self, edges):
-        for src, tgt in edges:
-            self.remove_parallel_edges(src, tgt)
-
-    def remove_nodes_by_id(self, node_ids):
-        for node_id in node_ids:
-            self.remove_node_by_id(node_id)
 
     @classmethod
     def empty(cls):
