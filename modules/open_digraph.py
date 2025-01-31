@@ -255,7 +255,64 @@ class open_digraph:  # for open directed graph
             self.add_input_id(self.add_node(children={id: 1}))
         else: 
             raise ValueError("add_input_node : Invalid given id")
-        
+
+    def is_well_formed(self):
+        '''
+        checks if the graph is well-formed by verifying the following properties:
+        - each input and output node ID is in the graph
+        - each input node has exactly one child with multiplicity 1 and no parents
+        - each output node has exactly one parent with multiplicity 1 and no children
+        - each key in nodes points to a node with the corresponding ID
+        - if node j has node i as a child with multiplicity m, then node i must have node j as a parent with multiplicity m, and vice versa.
+
+        returns: True if the graph is well-formed, False if not.
+        '''
+        nodes_id = set(self.get_nodes_id())
+
+        # single pass to validate input/output nodes exist & their structure
+        for node_id in self.inputs + self.outputs:
+            if node_id not in nodes_id:
+                return False  # input/output node must exist in the graph
+            
+            node = self.get_node_by_id(node_id)
+            parents, children = node.get_parents(), node.get_children()
+
+            # check inputs
+            if node_id in self.inputs:
+                 # then he must have exactly one child (multiplicity = 1) and no parents
+                if len(children) != 1 or list(children.values())[0] != 1 or len(parents) != 0:
+                    return False
+
+            # check outputs
+            if node_id in self.outputs: 
+                # then he must have exactly one parent (multiplicity = 1) and no children
+                if len(parents) != 1 or list(parents.values())[0] != 1 or len(children) != 0:
+                    return False
+
+        # single pass to validate node consistency and relationships
+        for node_id, node in self.nodes.items():
+            if node.get_id() != node_id:
+                return False
+
+            for child_id, multiplicity in node.get_children().items():
+                if child_id not in self.nodes or self.nodes[child_id].get_parents().get(node_id, -1) != multiplicity:
+                    return False  # a child must reference parent correctly
+
+            for parent_id, multiplicity in node.get_parents().items():
+                if parent_id not in self.nodes or self.nodes[parent_id].get_children().get(node_id, -1) != multiplicity:
+                    return False  # a parent must reference child correctly
+
+        return True
+
+
+    def assert_is_well_formed(self):
+        '''
+        asserts the graph is well-formed
+        raises AssertionError if the graph is not well-formed
+        '''
+        if not self.is_well_formed():
+            raise AssertionError("asserrt_is_well_formed : graph is not well-formed.")
+
     def add_output_node(self, id): 
         '''
         id : int
