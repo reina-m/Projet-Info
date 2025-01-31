@@ -18,7 +18,7 @@ class node:
         return self.__str__()
     
     def __copy__(self):
-        return node(self.id, self.label, self.parents, self.children)
+        return node(self.get_id(), self.get_label(), self.parents.copy(), self.children.copy())
     
     # getters
     def get_id(self):
@@ -105,7 +105,7 @@ class open_digraph:  # for open directed graph
     
     # returns a copy of the graph
     def __copy__(self):
-        return open_digraph(self.inputs, self.outputs, self.nodes)
+        return open_digraph(self.get_input_ids().copy(), self.get_output_ids().copy(), self.get_nodes().copy())
     
     # getters 
 
