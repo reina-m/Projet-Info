@@ -45,6 +45,34 @@ class node:
 
     def add_parent_id(self, id, multiplicity=1):
         self.parents[id] = multiplicity
+        
+#methode remove de node
+
+    def remove_parent_once(self, parent_id):
+        if parent_id in self.parents:
+            self.parents[parent_id] -= 1
+            if self.parents[parent_id] == 0:
+                self.parents.pop(parent_id)
+
+
+    def remove_child_once(self, child_id):
+        if child_id in self.children:
+            self.children[child_id] -= 1
+            if self.children[child_id] == 0:
+                self.children.pop(child_id)
+
+    def remove_parent_id(self, parent_id):
+        if parent_id in self.parents:
+            self.parents.pop(parent_id)
+
+    def remove_child_id(self, child_id):
+        if child_id in self.children:
+            self.children.pop(child_id)
+
+
+
+
+
 
 
 class open_digraph:  # for open directed graph
@@ -147,7 +175,53 @@ class open_digraph:  # for open directed graph
                 new_node.add_child_id(id, multiplicity)
         self.nodes[new_id] = new_node
         return new_id
+
+
     
+           # methode remove
+    def remove_edge(self, src, tgt ):
+        if src in self.nodes and tgt in self.nodes:
+            self.nodes[src].remove_child_once(tgt)
+            self.nodes[tgt].remove_parent_once(src)
+
+    def remove_parallel_edges(self, src, tgt):
+        if src in self.nodes and tgt in self.nodes:
+            self.nodes[src].remove_child_id(tgt)
+            self.nodes[tgt].remove_parent_id(src)
+
+
+    def remove_node_by_id (self, node_id):
+          if node_id in self.nodes:
+            aretirer = self.nodes[node_id]
+            for parent_id in list(aretirer.get_parents().keys()):
+                self.remove_parallel_edges(parent_id, node_id)
+            for child_id in list(aretirer.get_children().keys()):
+                self.remove_parallel_edges(node_id, child_id)
+            self.nodes.pop(node_id)
+            if node_id in self.inputs:
+                self.inputs.remove(node_id)
+            if node_id in self.outputs:
+                self.outputs.remove(node_id)
+    
+
+    def __delitem__(self, node_id):
+        self.remove_node_by_id(node_id)
+
+
+    def remove_edges(self, edges):
+        for src, tgt in edges:
+            self.remove_edge(src, tgt)
+
+    def remove_several_parallel_edges(self, edges):
+        for src, tgt in edges:
+            self.remove_parallel_edges(src, tgt)
+
+    def remove_nodes_by_id(self, node_ids):
+        for node_id in node_ids:
+            self.remove_node_by_id(node_id)
+
+
+    #exo4
     def add_input_node(self, id): 
         '''
         id : int
