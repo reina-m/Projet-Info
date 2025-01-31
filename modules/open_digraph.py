@@ -147,6 +147,30 @@ class open_digraph:  # for open directed graph
                 new_node.add_child_id(id, multiplicity)
         self.nodes[new_id] = new_node
         return new_id
+    
+    def add_input_node(self, id): 
+        '''
+        id : int
+        creates a new input node that points to the node id given
+        raises ValueError if id does not exist in graph, or if id is already an input
+        '''
+        if id in self.get_nodes_id() and id not in self.get_input_ids():
+            # leaves label empty
+            self.add_input_id(self.add_node(children={id: 1}))
+        else: 
+            raise ValueError("add_input_node : Invalid given id")
+        
+    def add_output_node(self, id): 
+        '''
+        id : int
+        creates a new output node that points to the node id given
+        raises ValueError if id does not exist in graph, or if id is already an output
+        '''
+        if id in self.get_nodes_id() and id not in self.get_output_ids():
+            # leaves label empty
+            self.add_output_id(self.add_node(parents={id: 1}))
+        else: 
+            raise ValueError("add_output_node : Invalid given id")
 
     @classmethod
     def empty(cls):
