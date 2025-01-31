@@ -65,22 +65,31 @@ class open_digraph:  # for open directed graph
     def __repr__(self):
         return self.__str__()
     
+    # returns a copy of the graph
     def __copy__(self):
         return open_digraph(self.inputs, self.outputs, self.nodes)
     
     # getters 
+
+    # returns list of input ids
     def get_input_ids(self):
         return self.inputs
+    # returns list of output ids
     def get_output_ids(self):
         return self.outputs
+    # returns <int, node> dict
     def id_node_map(self): 
         return self.nodes 
+    # returns node list
     def get_nodes(self):
         return list(self.nodes.values())
+    # returns node_ids list
     def get_nodes_id(self):
         return list(self.nodes.keys())
+    # returns the node with given id
     def get_node_by_id(self, id): 
-        return self.nodes.get(id, None)
+        return self.nodes[id]
+    # returns list of nodes with given ids
     def get_nodes_by_ids(self, ids):
         return [self.nodes[id] for id in ids if id in self.nodes]
     
@@ -95,9 +104,16 @@ class open_digraph:  # for open directed graph
         self.outputs.append(id)
 
     def new_id(self):
+        '''
+        returns an unused node id in the graph
+        '''
         return max(self.nodes.keys(), default=0) + 1
     
     def add_edge(self, src, tgt):
+        '''
+        adds edge from src node to tgt node 
+        raises ValueError if src / tgt not found
+        '''
         if src in self.nodes and tgt in self.nodes: 
             self.nodes[src].add_child_id(tgt)
             self.nodes[tgt].add_parent_id(src)
@@ -105,10 +121,20 @@ class open_digraph:  # for open directed graph
             raise ValueError("Source or target node ID not found in the graph.")
     
     def add_edges(self, edges):
+        '''
+        edges: (src * tgt) list;
+        adds edge from src node to tgt node to each (src * tgt) pair in the given list
+        '''
         for src, tgt in edges:
             self.add_edge(src, tgt)
     
     def add_node(self, label='', parents=None, children=None):
+        '''
+        label: str; node label (default: '').
+        parents: int->int dict; parent IDs mapped to multiplicities (default: {}).
+        children: int->int dict; child IDs mapped to multiplicities (default: {}).
+        adds node with label, parents, and children to graph; returns new node ID.
+        '''
         new_id = self.new_id()
         new_node = node(new_id, label, parents or {}, children or {})
         for id, multiplicity in parents.items():
