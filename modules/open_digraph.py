@@ -17,7 +17,7 @@ class node:
     def __repr__(self):
         return self.__str__()
     
-    def __copy__(self):
+    def copy(self):
         return node(self.get_id(), self.get_label(), self.parents.copy(), self.children.copy())
     
     # getters
@@ -104,7 +104,7 @@ class open_digraph:  # for open directed graph
         return self.__str__()
     
     # returns a copy of the graph
-    def __copy__(self):
+    def copy(self):
         return open_digraph(self.get_input_ids().copy(), self.get_output_ids().copy(), self.get_nodes().copy())
     
     # getters 
@@ -324,6 +324,32 @@ class open_digraph:  # for open directed graph
             self.add_output_id(self.add_node(parents={id: 1}))
         else: 
             raise ValueError("add_output_node : Invalid given id")
+        
+   
+   
+    def save_as_dot_file(self, path, verbose=False):
+        """
+        Créer un fichier .dot a partir d'un open_digraph afin de le visualiser facilement
+        """
+        f = open(path + "/Open_digraph.dot", "w+")
+        f.write("digraph G {\n")
+        # noeuds
+        for node in self.nodes.values():
+                if verbose:
+                    f.write("    " + str(node.get_id()) + ' [label="' + str(node.get_id()) + ": " + node.get_label() + '"];\n')
+                else:
+                    f.write("    " + str(node.get_id()) + ' [label="' + node.get_label() + '"];\n')
+                
+        # arêtes
+        for node in self.nodes.values():
+                for child_id, multiplicity in node.get_children().items():
+                    for _ in range(multiplicity):
+                        f.write("    " + str(node.get_id()) + " -> " + str(child_id) + ";\n")
+        
+        f.write("\n}")
+        f.close()
+
+
 
     @classmethod
     def empty(cls):
