@@ -349,8 +349,70 @@ class open_digraph:  # for open directed graph
         f.write("\n}")
         f.close()
 
-
-
     @classmethod
     def empty(cls):
         return cls([], [], [])
+    
+    @classmethod
+    def from_dot_file(cls, path): 
+        '''
+        reads a .dot file in the path and returns an open digraph
+        '''
+        f = open(path, "r") # openTextMode
+        res = open_digraph.empty() # empty result
+        # we are interested in the text between {} 
+        t = f.read()
+        s = t.index("{")
+        e = t.index("}")
+        t = t[s+1:e]
+        node_name_to_id = {}
+
+        # divide by ';' to read each line of code 
+        lines = [line.strip() for line in t.split(";") if line.strip()]
+
+        # read each line e.g v0 [label="&"]; or v0 -> v1; 
+        for line in lines:
+            if "[" in line and "]" in line:
+                # case: node definition like v0 [label="&"]
+                name = line.split("[")[0].strip()  # get node name
+                attr_text = line[line.index("[")+1:line.index("]")]  # extract attributes
+                attributes = [a.strip() for a in attr_text.split(",")]
+
+                l, i, o = "", False, False  # default label, input, output
+                for attr in attributes:
+                    key, value = attr.split("=")
+                    key, value = key.strip(), value.strip('"')
+                    if key == "label":
+                        l = value
+                    elif key == "input":
+                        i = True
+                    elif key == "output":
+                        o = True
+
+                id = res.add_node(label=l)
+                if i:
+                    res.add_input_id(id)
+                if o:
+                    res.add_output_id(id)
+                node_name_to_id[name] = id
+
+            elif "->" in line:
+                # case: edge definition like v0 -> v1 -> v2
+                nodes = [n.strip() for n in line.split("->")]
+                for i in range(len(nodes) - 1):
+                    src, tgt = nodes[i], nodes[i+1]
+                    if src not in node_name_to_id:
+                        node_name_to_id[src] = res.add_node()
+                    if tgt not in node_name_to_id:
+                        node_name_to_id[tgt] = res.add_node()
+                    res.add_edge(node_name_to_id[src], node_name_to_id[tgt])
+
+        return res
+
+                
+
+            
+
+
+
+
