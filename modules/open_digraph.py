@@ -1,3 +1,7 @@
+import os
+import webbrowser
+import tempfile
+
 class node:
     def __init__(self, identity, label, parents, children):
         '''
@@ -408,7 +412,18 @@ class open_digraph:  # for open directed graph
                     res.add_edge(node_name_to_id[src], node_name_to_id[tgt])
 
         return res
+    
+    def display_graph(self, verbose=False):
+        '''
+        displays the graph 
+        '''
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".dot") as temp_file:
+            self.save_as_dot_file(os.path.dirname(temp_file.name), verbose=verbose)
+            temp_path = temp_file.name
 
+            output_path = temp_path.replace(".dot", ".png")
+            os.system(f"dot -Tpng {temp_path} -o {output_path}")
+            webbrowser.open(f"file://{output_path}")
                 
 
             
