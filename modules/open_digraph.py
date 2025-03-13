@@ -1,4 +1,5 @@
 import os
+import copy
 import webbrowser
 import tempfile
 
@@ -22,7 +23,7 @@ class node:
         return self.__str__()
     
     def copy(self):
-        return node(self.get_id(), self.get_label(), self.parents.copy(), self.children.copy())
+        return node(self.get_id(), self.get_label(), self.get_parents().copy(), self.get_children().copy())
     
     # getters
     def get_id(self):
@@ -109,7 +110,7 @@ class open_digraph:  # for open directed graph
     
     # returns a copy of the graph
     def copy(self):
-        return open_digraph(self.get_input_ids().copy(), self.get_output_ids().copy(), self.get_nodes().copy())
+        return open_digraph(self.get_input_ids().copy(), self.get_output_ids().copy(), copy.deepcopy(self.get_nodes()))
     
     # getters 
 
@@ -151,44 +152,54 @@ class open_digraph:  # for open directed graph
         '''
         return max(self.nodes.keys(), default=0) + 1
     
-    def add_edge(self, src, tgt):
+    def add_edge(self, src, tgt, m=1):
         '''
-        adds edge from src node to tgt node 
+        adds edge from src node to tgt node with corresponding multiplicity
         raises ValueError if src / tgt not found
         '''
-        if src in self.nodes and tgt in self.nodes: 
-            self.nodes[src].add_child_id(tgt)
-            self.nodes[tgt].add_parent_id(src)
+        if src in self.nodes.keys() and tgt in self.nodes.keys(): 
+            self.get_node_by_id(src).add_child_id(tgt, m)
+            self.get_node_by_id(tgt).add_parent_id(src, m)
         else: 
             raise ValueError("Source or target node ID not found in the graph.")
     
-    def add_edges(self, edges):
+    def add_edges(self, edges, mult):
         '''
         edges: (src * tgt) list;
+        mult : the multiplicity of each edge (must be empty or the same size as edges)
         adds edge from src node to tgt node to each (src * tgt) pair in the given list
         '''
-        for src, tgt in edges:
-            self.add_edge(src, tgt)
+        for i in range (len(edges)):
+            if mult == []:
+                self.add_edge(edges[i][0], edges[i][1])
+            else:
+                self.add_edge(edges[i][0], edges[i][1])
     
-    def add_node(self, label='', parents=None, children=None):
-        '''
-        label: str; node label (default: '').
-        parents: int->int dict; parent IDs mapped to multiplicities (default: {}).
-        children: int->int dict; child IDs mapped to multiplicities (default: {}).
-        adds node with label, parents, and children to graph; returns new node ID.
-        '''
-        new_id = self.new_id()
-        new_node = node(new_id, label, parents or {}, children or {})
-        for id, multiplicity in parents.items():
-            node = self.get_node_by_id(id)
-            if node:
-                new_node.add_parent_id(id, multiplicity)
-        for id, multiplicity in children.items():
-            node = self.get_node_by_id(id)
-            if node: 
-                new_node.add_child_id(id, multiplicity)
-        self.nodes[new_id] = new_node
-        return new_id
+    def add_node(self, label='', parents={}, children={}):
+            """
+            adds a node with a label, parents, and children to the graph
+            returns the new node id
+            raises ValueError if parents or children are not in the graph
+            """
+            p_ids = list(parents.keys()) # extract parent ids
+            c_ids = list(children.keys()) # extract child ids
+            r = p_ids + c_ids  # combined parent and child ids
+            
+            if r and not all(n in self.nodes for n in r):
+                raise ValueError("one or more parents/children do not exist in the graph")
+            
+            n_ID = self.new_id()  # generate a new id
+            new_node = node(n_ID, label, {}, {})  # create new node
+            self.nodes[n_ID] = new_node  # add to graph
+            
+            # create edge lists
+            p = [(p, n_ID) for p in p_ids]  
+            c = [(n_ID, c) for c in c_ids]
+            edges = p + c
+            mult = list(parents.values()) + list(children.values())
+            
+            self.add_edges(edges, mult)  # add edges to graph
+            return n_ID
 
     # removes edge from src to tgt
     def remove_edge(self, src, tgt):
