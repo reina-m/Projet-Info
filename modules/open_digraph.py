@@ -163,17 +163,19 @@ class open_digraph:  # for open directed graph
         else: 
             raise ValueError("Source or target node ID not found in the graph.")
     
-    def add_edges(self, edges, mult):
+    def add_edges(self, edges, mult=[]):
         '''
-        edges: (src * tgt) list;
-        mult : the multiplicity of each edge (must be empty or the same size as edges)
-        adds edge from src node to tgt node to each (src * tgt) pair in the given list
+        edges: list of tuples (src, tgt)
+        mult : list of multiplicities (must be empty or have the same length as edges)
+        adds an edge from src to tgt for each pair in edges with the corresponding multiplicity.
         '''
-        for i in range (len(edges)):
-            if mult == []:
-                self.add_edge(edges[i][0], edges[i][1])
-            else:
-                self.add_edge(edges[i][0], edges[i][1])
+        if mult and len(mult) != len(edges):
+            raise ValueError("add_edges: mult list must be empty or have the same length as edges")
+
+        for i, (src, tgt) in enumerate(edges):
+            m = mult[i] if mult else 1  # Use the provided multiplicity or default to 1
+            self.add_edge(src, tgt, m)
+
     
     def add_node(self, label='', parents={}, children={}):
             """
