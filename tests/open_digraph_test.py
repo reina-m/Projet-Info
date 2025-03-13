@@ -10,6 +10,8 @@ from modules.open_digraph import *
 ##             TESTS POUR TD1              ##
 #############################################
 
+# EXO 3
+
 class InitTest(unittest.TestCase):
     def test_init_node(self):
         n0 = node(0, 'i', {}, {1:1})
@@ -37,6 +39,7 @@ class InitTest(unittest.TestCase):
         self.assertEqual(g.nodes[1].id, 1)
         self.assertEqual(g.nodes[2].id, 2)
 
+# EXO 4
 class StrReprTest(unittest.TestCase):
     def test_str_node(self):
         n = node(1, 'test', {0:1}, {2:1})
@@ -67,6 +70,7 @@ class StrReprTest(unittest.TestCase):
         print("Actual:\n", actual)
         self.assertEqual(actual, expected)
 
+# EXO 5
 class EmptyGraphTest(unittest.TestCase):
     def test_empty_graph(self):
         g = open_digraph.empty()
@@ -76,6 +80,7 @@ class EmptyGraphTest(unittest.TestCase):
         self.assertEqual(g.outputs, [])
         self.assertEqual(g.nodes, {})
 
+# EXO 6
 class CopyTest(unittest.TestCase):
     def test_copy_node(self):
         n = node(1, 'test', {0:1}, {2:1})
@@ -99,6 +104,7 @@ class CopyTest(unittest.TestCase):
         self.assertEqual(len(g.nodes), len(g_copy.nodes))
         self.assertIsNot(g, g_copy)  # ensure they are different objects
 
+# EXOS 7 - 8
 class GettersTest(unittest.TestCase):
     def test_getters(self):
         n = node(1, 'test', {0:1}, {2:1})
@@ -124,6 +130,7 @@ class SettersTest(unittest.TestCase):
         n.set_children({7:3})
         self.assertEqual(n.get_children(), {7: 3})
 
+# EXO 10
 class NewIDTest(unittest.TestCase):
     def test_new_id(self):
         g = open_digraph.empty()
@@ -132,6 +139,7 @@ class NewIDTest(unittest.TestCase):
         g.nodes = {1: node(1, 'A', {}, {}), 2: node(2, 'B', {}, {})}
         self.assertEqual(g.new_id(), 3)  # should return max id + 1
 
+# EXO 11
 class AddEdgeTest(unittest.TestCase):
     def test_add_edge(self):
         n0 = node(0, 'a', {}, {1: 1})
@@ -148,21 +156,22 @@ class AddEdgeTest(unittest.TestCase):
         g = open_digraph.empty()
         with self.assertRaises(ValueError):
             g.add_edge(1, 2)  # should fail since 1 and 2 are not in the graph
+
 class AddEdgesTest(unittest.TestCase):
     def test_add_edges(self):
-        # Create a small graph
+        # create a small graph
         n0 = node(0, 'A', {}, {1: 1})
         n1 = node(1, 'B', {0: 1}, {2: 1})
         n2 = node(2, 'C', {1: 1}, {})
         g = open_digraph([0], [2], [n0, n1, n2])
 
-        # Add multiple edges at once
+        # add multiple edges at once
         edges = [(0, 2), (1, 2)]
         multiplicities = [2, 3]
 
         g.add_edges(edges, multiplicities)
 
-        # Check if the edges are correctly added with their multiplicities
+        # check if the edges are correctly added with their multiplicities
         self.assertEqual(g.nodes[0].get_children()[2], 2)  # (0 -> 2) with multiplicity 2
         self.assertEqual(g.nodes[2].get_parents()[0], 2)   # (2 <- 0) with multiplicity 2
 
@@ -170,17 +179,17 @@ class AddEdgesTest(unittest.TestCase):
         self.assertEqual(g.nodes[2].get_parents()[1], 3)   # (2 <- 1) with multiplicity 3
 
     def test_add_edges_default_multiplicity(self):
-        # Create a small graph
+        # create a small graph
         n0 = node(0, 'A', {}, {1: 1})
         n1 = node(1, 'B', {0: 1}, {2: 1})
         n2 = node(2, 'C', {1: 1}, {})
         g = open_digraph([0], [2], [n0, n1, n2])
 
-        # Add multiple edges with default multiplicity (1)
+        # add multiple edges with default multiplicity (1)
         edges = [(0, 2), (1, 2)]
         g.add_edges(edges)
 
-        # Check if the edges are correctly added with default multiplicity 1
+        # check if the edges are correctly added with default multiplicity 1
         self.assertEqual(g.nodes[0].get_children()[2], 1)
         self.assertEqual(g.nodes[2].get_parents()[0], 1)
 
@@ -190,10 +199,11 @@ class AddEdgesTest(unittest.TestCase):
     def test_add_edges_invalid_multiplicity_length(self):
         g = open_digraph([], [], [])
 
-        # Should raise ValueError when mult list length doesn't match edges list length
+        # should raise ValueError when mult list length doesn't match edges list length
         with self.assertRaises(ValueError):
-            g.add_edges([(0, 1), (1, 2)], [1])  # Only one multiplicity given for two edges
+            g.add_edges([(0, 1), (1, 2)], [1])  # only one multiplicity given for two edges
 
+# EXO 12
 class AddNodeTest(unittest.TestCase):
     def test_add_node(self):
         g = open_digraph.empty()
@@ -216,6 +226,191 @@ class AddNodeTest(unittest.TestCase):
 #############################################
 ##          FIN TESTS POUR TD1             ##
 #############################################
+
+#############################################
+##            TESTS POUR TD2               ##
+#############################################
+
+# EXO 1
+class TestNodeMethods(unittest.TestCase):
+
+    def setUp(self):
+        """Initial setup before each test case."""
+        self.node = node(1, "A", {2: 2, 3: 1}, {4: 2, 5: 1})  # example node
+
+    def test_remove_parent_once(self):
+        """Test that remove_parent_once correctly decreases multiplicity or removes parent."""
+        self.node.remove_parent_once(2)
+        self.assertEqual(self.node.parents, {2: 1, 3: 1})  # 2 should have multiplicity 1
+
+        self.node.remove_parent_once(2)
+        self.assertEqual(self.node.parents, {3: 1})  # 2 should be fully removed
+
+        self.node.remove_parent_once(3)
+        self.assertEqual(self.node.parents, {})  # 3 removed, no parents left
+
+    def test_remove_child_once(self):
+        """Test that remove_child_once correctly decreases multiplicity or removes child."""
+        self.node.remove_child_once(4)
+        self.assertEqual(self.node.children, {4: 1, 5: 1})  # 4 should have multiplicity 1
+
+        self.node.remove_child_once(4)
+        self.assertNotIn(4, self.node.children)  # 4 should be fully removed
+
+    def test_remove_parent_id(self):
+        """Test that remove_parent_id removes all occurrences of a parent."""
+        self.node.remove_parent_id(2)
+        self.assertEqual(self.node.parents, {3: 1})  # 2 should be fully removed
+
+    def test_remove_child_id(self):
+        """Test that remove_child_id removes all occurrences of a child."""
+        self.node.remove_child_id(4)
+        self.assertEqual(self.node.children, {5: 1})  # 4 should be fully removed
+
+# EXO 2 : 
+class TestGraphEdgeRemoval(unittest.TestCase):
+
+    def setUp(self):
+        """Initial setup before each test case."""
+        n0 = node(0, "A", {}, {1: 1, 2: 1})
+        n1 = node(1, "B", {0: 1}, {2: 2})
+        n2 = node(2, "C", {0: 1, 1: 2}, {})
+        self.graph = open_digraph([0], [2], [n0, n1, n2])
+
+    def test_remove_edge(self):
+        """Test that remove_edge removes one occurrence of an edge."""
+        self.graph.remove_edge(1, 2)
+        self.assertEqual(self.graph.get_node_by_id(1).get_children(), {2: 1})  # one edge left
+
+        self.graph.remove_edge(1, 2)
+        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children())  # no edge left
+
+    def test_remove_parallel_edges(self):
+        """Test that remove_parallel_edges removes all occurrences of an edge."""
+        self.graph.remove_parallel_edges(1, 2)
+        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children())  # 1 -> 2 should be gone
+
+    def test_remove_node_by_id(self):
+        """Test that remove_node_by_id removes a node and all its edges."""
+        self.graph.remove_node_by_id(1)
+        self.assertNotIn(1, self.graph.nodes)  # node 1 should be removed
+        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children())  # 0 -> 1 should be gone
+        self.assertNotIn(1, self.graph.get_node_by_id(2).get_parents())  # 2 <- 1 should be gone
+
+    def test_remove_edges(self):
+        """Test that remove_edges removes multiple individual edges."""
+        self.graph.remove_edges([(0, 1), (1, 2)])
+        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children())  # 0 -> 1 should be gone
+        self.assertEqual(self.graph.get_node_by_id(1).get_children()[2], 1)  # 1 -> 2 should have one left
+
+    def test_remove_several_parallel_edges(self):
+        """Test that remove_several_parallel_edges removes multiplse edges completely."""
+        self.graph.remove_several_parallel_edges([(0, 1), (1, 2)])
+        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children())  # 0 -> 1 gone
+        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children())  # 1 -> 2 gone
+
+# EXO 4 : 
+class TestAddInputOutputNodes(unittest.TestCase):
+
+    def setUp(self):
+        """Initial setup before each test case."""
+        self.graph = open_digraph([], [], [])
+        self.graph.add_node("A")  # id = 0
+        self.graph.add_node("B")  # id = 1
+        self.graph.add_node("C")  # id = 2
+
+    def test_add_output_node(self):
+        """Test that add_output_node correctly creates an output node."""
+        self.graph.add_output_node(1)  # create an output node pointing to node 1
+        last_id = max(self.graph.nodes.keys())  # new node id
+
+        self.assertIn(last_id, self.graph.get_output_ids())  # should be in outputs
+        self.assertEqual(self.graph.get_node_by_id(last_id).get_parents(), {1: 1})  # should point to 1
+
+    def test_add_input_node(self):
+        """Test that add_input_node correctly creates an input node."""
+        self.graph.add_input_node(2)  # create an input node pointing to node 2
+        last_id = max(self.graph.nodes.keys())  # new node id
+
+        self.assertIn(last_id, self.graph.get_input_ids())  # should be in inputs
+        self.assertEqual(self.graph.get_node_by_id(last_id).get_children(), {2: 1})  # should point to 2
+
+    def test_add_output_node_invalid(self):
+        """Test that add_output_node raises ValueError if id is invalid."""
+        with self.assertRaises(ValueError):
+            self.graph.add_output_node(10)  # id 10 does not exist
+
+    def test_add_input_node_invalid(self):
+        """Test that add_input_node raises ValueError if id is invalid."""
+        with self.assertRaises(ValueError):
+            self.graph.add_input_node(10)  # id 10 does not exist
+
+# EXOS 3 ET 5
+class IsWellFormedTest(unittest.TestCase):
+    """
+    Tests for the is_well_formed method.
+    Ensures that:
+      - is_well_formed accepts valid graphs and rejects invalid ones.
+      - Adding or removing a node keeps a well-formed graph.
+      - Adding or removing an edge keeps a well-formed graph (if it doesn't 
+        break input/output node constraints).
+      - Adding an input or output node remains well-formed.
+    """
+
+    def test_accepts_valid_graph(self):
+        """A properly connected, labeled graph with valid inputs/outputs should be accepted."""
+        # Example: a -> b
+        n0 = node(0, 'a', {}, {1:1})
+        n1 = node(1, 'b', {0:1}, {})
+        g = open_digraph([0], [1], [n0, n1])
+        self.assertTrue(g.is_well_formed(), "A simple valid graph should be well-formed.")
+
+    def test_rejects_invalid_graph(self):
+        """
+        Create a graph that is obviously malformed (e.g., an output node isn't 
+        properly connected, or references a non-existent node).
+        """
+        n0 = node(0, 'X', {}, {})
+        n1 = node(1, 'Y', {}, {})
+        g = open_digraph([0], [1], [n0, n1])  # No edge between input and output
+        self.assertFalse(g.is_well_formed(), "Graph with unconnected output node should be malformed.")
+
+    def test_add_remove_node_keeps_well_formed(self):
+        """
+        Ensure that adding/removing a node maintains a well-formed graph.
+        """
+        # Start with a valid graph
+        n0 = node(0, 'A', {}, {1: 1})
+        n1 = node(1, 'B', {0: 1}, {})
+        g = open_digraph([0], [1], [n0, n1])
+        self.assertTrue(g.is_well_formed())
+
+        # Add a new node safely
+        new_id = g.add_node("C")
+        self.assertTrue(g.is_well_formed(), "Adding a node without edges should keep the graph well-formed.")
+
+        # Now remove that same node
+        g.remove_node_by_id(new_id)
+        self.assertTrue(g.is_well_formed(), "Removing a node without breaking constraints should be fine.")
+
+
+    def test_add_input_output_nodes_keeps_well_formed(self):
+        """
+        Ensure that adding input/output nodes correctly maintains a well-formed graph.
+        """
+        g = open_digraph([], [], [])
+
+        # Add a simple node
+        a_id = g.add_node("A")
+        self.assertTrue(g.is_well_formed())
+
+        # Add an output node that points to 'A'
+        g.add_output_node(a_id)
+        self.assertTrue(g.is_well_formed(), "Adding an output node pointing to an existing node should stay well-formed.")
+
+        # Add an input node that 'A' points to
+        g.add_input_node(a_id)
+        self.assertTrue(g.is_well_formed(), "Adding an input node from an existing node should stay well-formed.")
 
 if __name__ == '__main__': # the following code is called only when
     unittest.main()        # precisely this file is run

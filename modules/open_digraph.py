@@ -57,7 +57,7 @@ class node:
         removes one multiplicity from the parent node
         if multiplicity = 0, the parent is removed
         '''
-        if parent_id in self.parents:
+        if parent_id in self.parents and self.parents[parent_id] > 0:
             self.parents[parent_id] -= 1
             if self.parents[parent_id] == 0:
                 self.parents.pop(parent_id)
@@ -69,7 +69,7 @@ class node:
         removes one multiplicity from the child node
         if multiplicity is 0, the child is removed
         '''
-        if child_id in self.children:
+        if child_id in self.children and self.children[child_id] > 0:
             self.children[child_id] -= 1
             if self.children[child_id] == 0:
                 self.children.pop(child_id)
@@ -226,16 +226,17 @@ class open_digraph:  # for open directed graph
         s.remove_child_id(tgt)
         t.remove_parent_id(src)
 
-    def remove_node_by_id (self, node_id):
+    def remove_node_by_id(self, node_id):
         '''
         node_id: int
-        removes node from the graph
+        removes node from the graph along with all its edges
         '''
-        node = self.nodes.pop(node_id)
-        for parent in node.get_parents():
-            self.remove_parallel_edges(parent, node_id)
-        for child in node.get_children():
-            self.remove_parallel_edges(node_id, child)
+        n = self.get_node_by_id(node_id)
+        edges = [(p, node_id) for p in n.get_parents()] + [(node_id, c) for c in n.get_children()]
+        
+        self.remove_several_parallel_edges(edges)  # remove all edges linked to node
+        self.nodes.pop(node_id)  # remove node itself
+
 
     def remove_edges(self, edges):
         '''
