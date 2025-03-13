@@ -6,6 +6,9 @@ import unittest
 from modules.open_digraph import *
 
 # classe pour le test des methodes __init__ : 
+#############################################
+##             TESTS POUR TD1              ##
+#############################################
 
 class InitTest(unittest.TestCase):
     def test_init_node(self):
@@ -164,6 +167,10 @@ class AddNodeTest(unittest.TestCase):
         self.assertIn(new_id, g.nodes)  # new node exists
         self.assertIn(new_id, g.nodes[1].get_children())  # parent-child link
         self.assertIn(1, g.nodes[new_id].get_parents())  # reverse link
+
+#############################################
+##          FIN TESTS POUR TD1             ##
+#############################################
 
 if __name__ == '__main__': # the following code is called only when
     unittest.main()        # precisely this file is run
