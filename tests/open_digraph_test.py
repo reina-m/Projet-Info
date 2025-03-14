@@ -1,5 +1,7 @@
 import sys
 import os
+import random
+
 root = os.path.normpath(os.path.join(__file__, './../..'))
 sys.path.append(root) # allow us to fetch files from the project root
 import unittest
@@ -396,6 +398,125 @@ class IsWellFormedTest(unittest.TestCase):
         # Add an input node that 'A' points to
         g.add_input_node(a_id)
         self.assertTrue(g.is_well_formed(), "Adding an input node from an existing node should stay well-formed.")
+
+
+
+
+class TestGraph(unittest.TestCase):
+    def test_random_int_list(self):
+        lst = random_int_list(5, 10)
+        self.assertEqual(len(lst), 5)
+        self.assertTrue(all(0 <= x < 10 for x in lst))
+
+    def test_random_int_matrix(self):
+        n, bound = 4, 10
+        matrix = random_int_matrix(n, bound)
+        self.assertEqual(len(matrix), n)
+        self.assertTrue(all(len(row) == n for row in matrix))
+
+    def test_random_symetric_int_matrix(self):
+        n, bound = 4, 10
+        matrix = random_symetric_int_matrix(n, bound)
+        for i in range(n):
+            for j in range(n):
+                self.assertEqual(matrix[i][j], matrix[j][i])
+
+    def test_graph_from_adjacency_matrix(self):
+        matrix = [[0, 1], [1, 0]]
+        graph = Graph().graph_from_adjacency_matrix(matrix)
+        self.assertEqual(len(graph.nodes), 2)
+        self.assertEqual(len(graph.edges), 2)
+
+    def test_random_graph(self):
+        g = Graph().random_graph(5, 10, form="oriented")
+        self.assertTrue(isinstance(g, Graph))
+        
+class TestIsCyclic(unittest.TestCase):
+
+    def test_acyclic_graph(self):
+        # Créer un graphe acyclique simple : a -> b -> c
+        n0 = node(0, 'a', {}, {1: 1})
+        n1 = node(1, 'b', {0: 1}, {2: 1})
+        n2 = node(2, 'c', {1: 1}, {})
+        g = open_digraph([0], [2], [n0, n1, n2])
+
+        self.assertFalse(g.is_cyclic(), "Le graphe ne devrait pas être cyclique.")
+
+    def test_cyclic_graph(self):
+        # Créer un graphe cyclique : a -> b -> c -> a
+        n0 = node(0, 'a', {2: 1}, {1: 1})
+        n1 = node(1, 'b', {0: 1}, {2: 1})
+        n2 = node(2, 'c', {1: 1}, {0: 1})
+        g = open_digraph([0], [2], [n0, n1, n2])
+
+        self.assertTrue(g.is_cyclic(), "Le graphe devrait être cyclique.")
+
+    def test_empty_graph(self):
+        # Graphe vide
+        g = open_digraph([], [], [])
+        self.assertFalse(g.is_cyclic(), "Un graphe vide ne devrait pas être cyclique.")
+
+
+
+
+
+
+
+
+class TestIsWellFormed(unittest.TestCase):
+
+    def test_well_formed_graph(self):
+        # Créer un graphe bien formé : a -> b -> c
+        n0 = node(0, 'a', {}, {1: 1})
+        n1 = node(1, 'b', {0: 1}, {2: 1})
+        n2 = node(2, 'c', {1: 1}, {})
+        g = open_digraph([0], [2], [n0, n1, n2])
+
+        self.assertTrue(g.is_well_formed(), "Le graphe devrait être bien formé.")
+
+    def test_malformed_graph(self):
+        # Créer un graphe mal formé : a -> b, mais b n'a pas de parent
+        n0 = node(0, 'a', {}, {1: 1})
+        n1 = node(1, 'b', {}, {})
+        g = open_digraph([0], [1], [n0, n1])
+
+        self.assertFalse(g.is_well_formed(), "Le graphe ne devrait pas être bien formé.")
+
+    def test_empty_graph(self):
+        # Graphe vide
+        g = open_digraph([], [], [])
+        self.assertTrue(g.is_well_formed(), "Un graphe vide devrait être bien formé.")
+
+    def test_bool_circ_invalid_initialization(self):
+    # Graphe invalide : nœud de copie avec degré entrant != 1
+        n0 = node(0, ' ', {}, {1: 1})  # Nœud de copie sans parent
+        n1 = node(1, 'a', {0: 1}, {})
+        g = open_digraph([], [], [n0, n1])
+        with self.assertRaises(ValueError):
+            bool_circ(g)
+            
+class TestShiftIndices(unittest.TestCase):
+
+    def test_shift_indices(self):
+        # Créer un graphe simple : a -> b -> c
+        n0 = node(0, 'a', {}, {1: 1})
+        n1 = node(1, 'b', {0: 1}, {2: 1})
+        n2 = node(2, 'c', {1: 1}, {})
+        g = open_digraph([0], [2], [n0, n1, n2])
+
+        # Décale les indices de 5
+        g.shift_indices(5)
+
+        # Vérifie que les indices ont été décalés
+        self.assertEqual(g.get_input_ids(), [5])
+        self.assertEqual(g.get_output_ids(), [7])
+        self.assertEqual(g.get_nodes_id(), [5, 6, 7])
+
+        # Vérifie que les relations entre les nœuds sont conservées
+        self.assertEqual(g.get_node_by_id(5).get_children(), {6: 1})
+        self.assertEqual(g.get_node_by_id(6).get_parents(), {5: 1})
+        self.assertEqual(g.get_node_by_id(6).get_children(), {7: 1})
+        self.assertEqual(g.get_node_by_id(7).get_parents(), {6: 1})
 
 
 if __name__ == '__main__': # the following code is called only when
