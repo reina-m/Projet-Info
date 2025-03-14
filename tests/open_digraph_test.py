@@ -412,5 +412,6 @@ class IsWellFormedTest(unittest.TestCase):
         g.add_input_node(a_id)
         self.assertTrue(g.is_well_formed(), "Adding an input node from an existing node should stay well-formed.")
 
+
 if __name__ == '__main__': # the following code is called only when
     unittest.main()        # precisely this file is run

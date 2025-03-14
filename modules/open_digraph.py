@@ -341,91 +341,183 @@ class open_digraph:  # for open directed graph
             # leaves label empty
             self.add_output_id(self.add_node(parents={id: 1}))
         else: 
-            raise ValueError("add_output_node : Invalid given id")
-        
-   
+            raise ValueError("add_output_node : Invalid given id")  
    
     def save_as_dot_file(self, path, verbose=False):
-        """
-        Créer un fichier .dot a partir d'un open_digraph afin de le visualiser facilement
-        """
-        f = open(path + "/Open_digraph.dot", "w+")
-        f.write("digraph G {\n")
-        # noeuds
-        for node in self.nodes.values():
+
+        assert path.endswith(".dot"), "path must end with .dot"
+        s = "digraph G {\n\n"
+
+        # 3) Write out all nodes
+        #    - If it's an input node, add input="true"
+        #    - If it's an output node, add output="true"
+        #    - If it has a label, use label="..."
+        #    - If verbose, also show \nid=ID
+        for node_id, node in self.nodes.items():
+            # Gather attributes in a small dict
+            attr_dict = {}
+            if node.label:
+                # e.g. label="A"
+                # if verbose we add the ID on a second line
                 if verbose:
-                    f.write("    " + str(node.get_id()) + ' [label="' + str(node.get_id()) + ": " + node.get_label() + '"];\n')
+                    attr_dict["label"] = f'{node.label}\\nid={node_id}'
                 else:
-                    f.write("    " + str(node.get_id()) + ' [label="' + node.get_label() + '"];\n')
-                
-        # arêtes
-        for node in self.nodes.values():
-                for child_id, multiplicity in node.get_children().items():
-                    for _ in range(multiplicity):
-                        f.write("    " + str(node.get_id()) + " -> " + str(child_id) + ";\n")
-        
-        f.write("\n}")
-        f.close()
+                    attr_dict["label"] = node.label
+            else:
+                # no label
+                if verbose:
+                    attr_dict["label"] = f'{node_id}'  # or blank, up to you
+                else:
+                    # if you truly want an empty label, do ""
+                    attr_dict["label"] = ""
+
+            # mark as input or output if relevant
+            if node_id in self.inputs:
+                attr_dict["input"] = "true"
+            if node_id in self.outputs:
+                attr_dict["output"] = "true"
+
+            # build final bracket string: e.g. [label="A", input="true"]
+            if attr_dict:
+                # turn dict into a list of key="value"
+                attributes_str = ", ".join(f'{k}="{v}"' for k,v in attr_dict.items())
+                s += f'    v{node_id} [{attributes_str}];\n'
+            else:
+                # if truly no attributes, just do v{node_id}
+                s += f'    v{node_id};\n'
+
+        s += "\n"
+
+        # 4) Write edges
+        #    for each node, for each child with multiplicity m:
+        #    - if m=1 => v{i} -> v{c};
+        #    - if m>1 => v{i} -> v{c} [mult=m];
+        for node_id, node in self.nodes.items():
+            for child_id, multiplicity in node.get_children().items():
+                if multiplicity <= 1:
+                    # single edge
+                    s += f'    v{node_id} -> v{child_id};\n'
+                else:
+                    # multiple edges => one line with [mult=??]
+                    s += f'    v{node_id} -> v{child_id} [mult={multiplicity}];\n'
+
+        s += "\n}\n"
+
+        # 5) Write the DOT file
+        with open(path, "w") as f:
+            f.write(s)
+
+
 
     @classmethod
     def empty(cls):
         return cls([], [], [])
     
     @classmethod
-    def from_dot_file(cls, path): 
-        '''
-        reads a .dot file in the path and returns an open digraph
-        '''
-        f = open(path, "r") # openTextMode
-        res = open_digraph.empty() # empty result
-        # we are interested in the text between {} 
-        t = f.read()
-        s = t.index("{")
-        e = t.index("}")
-        t = t[s+1:e]
-        node_name_to_id = {}
+    def from_dot_file(cls, p):
+        # open & read
+        with open(p, "r") as f:
+            data = f.read()
+        # locate top-level braces
+        s = data.find("{")
+        e = data.rfind("}")
+        if s == -1 or e == -1 or s > e:
+            raise ValueError("No matching brakets found in DOT file")
 
-        # divide by ';' to read each line of code 
-        lines = [line.strip() for line in t.split(";") if line.strip()]
+        # the portion inside braces
+        core = data[s+1:e].strip()
+        # start with an empty graph
+        g = cls.empty()
+        name_to_id = {}
 
-        # read each line e.g v0 [label="&"]; or v0 -> v1; 
-        for line in lines:
-            if "[" in line and "]" in line:
-                # case: node definition like v0 [label="&"]
-                name = line.split("[")[0].strip()  # get node name
-                attr_text = line[line.index("[")+1:line.index("]")]  # extract attributes
-                attributes = [a.strip() for a in attr_text.split(",")]
+        # split lines on ';'
+        parts = [ln.strip() for ln in core.split(";") if ln.strip()]
 
-                l, i, o = "", False, False  # default label, input, output
-                for attr in attributes:
-                    key, value = attr.split("=")
-                    key, value = key.strip(), value.strip('"')
-                    if key == "label":
-                        l = value
-                    elif key == "input":
-                        i = True
-                    elif key == "output":
-                        o = True
+        for line in parts:
+            # check for an edge
+            if "->" in line:
+                # separate any trailing bracketed attributes, e.g. v0->v1 [color=red,mult=2]
+                bracket_part = ""
+                if "[" in line and "]" in line:
+                    # capture bracket text
+                    bstart = line.index("[")
+                    bend = line.rindex("]")
+                    bracket_part = line[bstart+1:bend].strip()
+                    line = line[:bstart].strip()
 
-                id = res.add_node(label=l)
-                if i:
-                    res.add_input_id(id)
-                if o:
-                    res.add_output_id(id)
-                node_name_to_id[name] = id
+                # now line should be something like 'v0->v1->v2'
+                nodes_list = [x.strip() for x in line.split("->") if x.strip()]
+                # parse edge attributes if any
+                edge_attrs = {}
+                if bracket_part:
+                    for a in bracket_part.split(","):
+                        kv = a.strip().split("=")
+                        if len(kv) == 2:
+                            k = kv[0].strip()
+                            v = kv[1].strip().strip('"')
+                            edge_attrs[k] = v
 
-            elif "->" in line:
-                # case: edge definition like v0 -> v1 -> v2
-                nodes = [n.strip() for n in line.split("->")]
-                for i in range(len(nodes) - 1):
-                    src, tgt = nodes[i], nodes[i+1]
-                    if src not in node_name_to_id:
-                        node_name_to_id[src] = res.add_node()
-                    if tgt not in node_name_to_id:
-                        node_name_to_id[tgt] = res.add_node()
-                    res.add_edge(node_name_to_id[src], node_name_to_id[tgt])
+                # handle chain edges
+                for i in range(len(nodes_list) - 1):
+                    src_name, tgt_name = nodes_list[i], nodes_list[i+1]
+                    # if node undefined, create a placeholder
+                    if src_name not in name_to_id:
+                        name_to_id[src_name] = g.add_node()
+                    if tgt_name not in name_to_id:
+                        name_to_id[tgt_name] = g.add_node()
 
-        return res
+                    # interpret multiplicity if 'mult' in edge_attrs
+                    mult = 1
+                    if 'mult' in edge_attrs:
+                        try:
+                            mult = int(edge_attrs['mult'])
+                        except:
+                            pass
+                    # add as many edges as mult says
+                    g.add_edge(name_to_id[src_name], name_to_id[tgt_name], mult)
+                # (ignore any other edge attrs like color, style, etc.)
+
+            else:
+                # node definition
+                # example: v0 [label="X", input=true, color=red]
+                bracket_part = ""
+                if "[" in line and "]" in line:
+                    bstart = line.index("[")
+                    bend = line.rindex("]")
+                    bracket_part = line[bstart+1:bend].strip()
+                    line = line[:bstart].strip()
+
+                node_name = line.strip()
+                # gather attributes
+                node_attrs = {}
+                if bracket_part:
+                    for a in bracket_part.split(","):
+                        kv = a.strip().split("=")
+                        if len(kv) == 2:
+                            k = kv[0].strip()
+                            v = kv[1].strip().strip('"')
+                            node_attrs[k] = v
+
+                # if node already known, reuse it; else create
+                if node_name in name_to_id:
+                    n_id = name_to_id[node_name]
+                else:
+                    n_id = g.add_node()
+                    name_to_id[node_name] = n_id
+
+                # set label if found
+                if "label" in node_attrs:
+                    # update node's label
+                    g.nodes[n_id].label = node_attrs["label"]
+                # interpret input, output
+                if "input" in node_attrs and node_attrs["input"].lower() in ["true","1"]:
+                    g.add_input_id(n_id)
+                if "output" in node_attrs and node_attrs["output"].lower() in ["true","1"]:
+                    g.add_output_id(n_id)
+
+                # store other unknown node attrs if you want; ignoring them here
+
+        return g
     
     def display_graph(self, verbose=False):
         '''
