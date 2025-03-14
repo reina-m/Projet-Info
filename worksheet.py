@@ -112,3 +112,5 @@ print("\nLoaded mixed graph from DOT file:")
 print(g_mix_loaded)
 
 print("\nAll graphs have been saved, loaded, and printed.\n")
+print("\nDisplaying the mixed graph...")
+g_mix.display(verbose=True) 

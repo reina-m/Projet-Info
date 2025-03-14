@@ -342,7 +342,7 @@ class open_digraph:  # for open directed graph
             self.add_output_id(self.add_node(parents={id: 1}))
         else: 
             raise ValueError("add_output_node : Invalid given id")  
-   
+
     def save_as_dot_file(self, path, verbose=False):
 
         assert path.endswith(".dot"), "path must end with .dot"
@@ -407,7 +407,20 @@ class open_digraph:  # for open directed graph
         with open(path, "w") as f:
             f.write(s)
 
-
+    def display(self, verbose=False):
+        """
+        Saves the graph to a fixed .dot file, converts it to a PNG using Graphviz,
+        then opens the PNG in the default viewer (on macOS, Preview).
+        """
+        dot_path = "my_graph.dot"
+        png_path = "my_graph.png"
+        self.save_as_dot_file(dot_path, verbose=verbose)
+        # convert the .dot file to a PNG
+        os.system(f"dot -Tpng '{dot_path}' -o '{png_path}'")
+        # open the resulting PNG in the default viewer
+        abs_png = os.path.abspath(png_path)
+        webbrowser.open(f"file://{abs_png}")
+        os.remove(dot_path)
 
     @classmethod
     def empty(cls):
@@ -518,18 +531,6 @@ class open_digraph:  # for open directed graph
                 # store other unknown node attrs if you want; ignoring them here
 
         return g
-    
-    def display_graph(self, verbose=False):
-        '''
-        displays the graph 
-        '''
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".dot") as temp_file:
-            self.save_as_dot_file(os.path.dirname(temp_file.name), verbose=verbose)
-            temp_path = temp_file.name
-
-            output_path = temp_path.replace(".dot", ".png")
-            os.system(f"dot -Tpng {temp_path} -o {output_path}")
-            webbrowser.open(f"file://{output_path}")
                 
 
             
