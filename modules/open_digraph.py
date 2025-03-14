@@ -1,4 +1,5 @@
 import os
+import copy
 import webbrowser
 import tempfile
 
@@ -57,7 +58,7 @@ class node:
         removes one multiplicity from the parent node
         if multiplicity = 0, the parent is removed
         '''
-        if parent_id in self.parents:
+        if parent_id in self.parents and self.parents[parent_id] > 0:
             self.parents[parent_id] -= 1
             if self.parents[parent_id] == 0:
                 self.parents.pop(parent_id)
@@ -69,7 +70,7 @@ class node:
         removes one multiplicity from the child node
         if multiplicity is 0, the child is removed
         '''
-        if child_id in self.children:
+        if child_id in self.children and self.children[child_id] > 0:
             self.children[child_id] -= 1
             if self.children[child_id] == 0:
                 self.children.pop(child_id)
@@ -155,24 +156,30 @@ class open_digraph:  # for open directed graph
         '''
         return max(self.nodes.keys(), default=0) + 1
     
-    def add_edge(self, src, tgt):
+    def add_edge(self, src, tgt, m=1):
         '''
-        adds edge from src node to tgt node 
+        adds edge from src node to tgt node with corresponding multiplicity
         raises ValueError if src / tgt not found
         '''
-        if src in self.nodes and tgt in self.nodes: 
-            self.nodes[src].add_child_id(tgt)
-            self.nodes[tgt].add_parent_id(src)
+        if src in self.nodes.keys() and tgt in self.nodes.keys(): 
+            self.get_node_by_id(src).add_child_id(tgt, m)
+            self.get_node_by_id(tgt).add_parent_id(src, m)
         else: 
             raise ValueError("Source or target node ID not found in the graph.")
     
-    def add_edges(self, edges):
+    def add_edges(self, edges, mult=[]):
         '''
-        edges: (src * tgt) list;
-        adds edge from src node to tgt node to each (src * tgt) pair in the given list
+        edges: list of tuples (src, tgt)
+        mult : list of multiplicities (must be empty or have the same length as edges)
+        adds an edge from src to tgt for each pair in edges with the corresponding multiplicity.
         '''
-        for src, tgt in edges:
-            self.add_edge(src, tgt)
+        if mult and len(mult) != len(edges):
+            raise ValueError("add_edges: mult list must be empty or have the same length as edges")
+
+        for i, (src, tgt) in enumerate(edges):
+            m = mult[i] if mult else 1  # Use the provided multiplicity or default to 1
+            self.add_edge(src, tgt, m)
+
     
     def add_node(self, label='', parents=None, children=None):
         '''
@@ -217,16 +224,17 @@ class open_digraph:  # for open directed graph
         s.remove_child_id(tgt)
         t.remove_parent_id(src)
 
-    def remove_node_by_id (self, node_id):
+    def remove_node_by_id(self, node_id):
         '''
         node_id: int
-        removes node from the graph
+        removes node from the graph along with all its edges
         '''
-        node = self.nodes.pop(node_id)
-        for parent in node.get_parents():
-            self.remove_parallel_edges(parent, node_id)
-        for child in node.get_children():
-            self.remove_parallel_edges(node_id, child)
+        n = self.get_node_by_id(node_id)
+        edges = [(p, node_id) for p in n.get_parents()] + [(node_id, c) for c in n.get_children()]
+        
+        self.remove_several_parallel_edges(edges)  # remove all edges linked to node
+        self.nodes.pop(node_id)  # remove node itself
+
 
     def remove_edges(self, edges):
         '''
@@ -331,18 +339,30 @@ class open_digraph:  # for open directed graph
             # leaves label empty
             self.add_output_id(self.add_node(parents={id: 1}))
         else: 
-            raise ValueError("add_output_node : Invalid given id")
-        
-   
-   
+            raise ValueError("add_output_node : Invalid given id")  
+
     def save_as_dot_file(self, path, verbose=False):
-        """
-        Créer un fichier .dot a partir d'un open_digraph afin de le visualiser facilement
-        """
-        f = open(path + "/Open_digraph.dot", "w+")
-        f.write("digraph G {\n")
-        # noeuds
-        for node in self.nodes.values():
+
+        assert path.endswith(".dot"), "path must end with .dot"
+        s = "digraph G {\n\n"
+
+        # 3) Write out all nodes
+        #    - If it's an input node, add input="true"
+        #    - If it's an output node, add output="true"
+        #    - If it has a label, use label="..."
+        #    - If verbose, also show \nid=ID
+        for node_id, node in self.nodes.items():
+            # Gather attributes in a small dict
+            attr_dict = {}
+            if node.label:
+                # e.g. label="A"
+                # if verbose we add the ID on a second line
+                if verbose:
+                    attr_dict["label"] = f'{node.label}\\nid={node_id}'
+                else:
+                    attr_dict["label"] = node.label
+            else:
+                # no label
                 if verbose:
                     f.write("    " + str(node.get_id()) + ' [label="' + str(node.get_id()) + ": " + node.get_label() + '"];\n')
               #  else:
@@ -374,21 +394,24 @@ class open_digraph:  # for open directed graph
     
 <<<<<<< Updated upstream
     @classmethod
-    def from_dot_file(cls, path): 
-        '''
-        reads a .dot file in the path and returns an open digraph
-        '''
-        f = open(path, "r") # openTextMode
-        res = open_digraph.empty() # empty result
-        # we are interested in the text between {} 
-        t = f.read()
-        s = t.index("{")
-        e = t.index("}")
-        t = t[s+1:e]
-        node_name_to_id = {}
+    def from_dot_file(cls, p):
+        # open & read
+        with open(p, "r") as f:
+            data = f.read()
+        # locate top-level braces
+        s = data.find("{")
+        e = data.rfind("}")
+        if s == -1 or e == -1 or s > e:
+            raise ValueError("No matching brakets found in DOT file")
 
-        # divide by ';' to read each line of code 
-        lines = [line.strip() for line in t.split(";") if line.strip()]
+        # the portion inside braces
+        core = data[s+1:e].strip()
+        # start with an empty graph
+        g = cls.empty()
+        name_to_id = {}
+
+        # split lines on ';'
+        parts = [ln.strip() for ln in core.split(";") if ln.strip()]
 
         # read each line e.g v0 [label="&"]; or v0 -> v1; 
         for line in lines:
