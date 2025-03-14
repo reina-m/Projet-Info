@@ -457,12 +457,6 @@ class TestIsCyclic(unittest.TestCase):
         self.assertFalse(g.is_cyclic(), "Un graphe vide ne devrait pas être cyclique.")
 
 
-
-
-
-
-
-
 class TestIsWellFormed(unittest.TestCase):
 
     def test_well_formed_graph(self):

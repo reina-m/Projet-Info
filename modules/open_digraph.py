@@ -306,7 +306,7 @@ class open_digraph:  # for open directed graph
         '''
         nodes_id = set(self.get_nodes_id())
 
-        # single pass to validate input/output nodes exist & their structure
+        # validate input/output nodes exist & their structure
         for node_id in self.inputs + self.outputs:
             if node_id not in nodes_id:
                 return False  # input/output node must exist in the graph
@@ -326,7 +326,7 @@ class open_digraph:  # for open directed graph
                 if len(parents) != 1 or list(parents.values())[0] != 1 or len(children) != 0:
                     return False
 
-        # single pass to validate node consistency and relationships
+        # validate node consistency and relationships
         for node_id, node in self.nodes.items():
             if node.get_id() != node_id:
                 return False
@@ -421,9 +421,6 @@ class open_digraph:  # for open directed graph
         """
         return max(self.nodes.keys()) if self.nodes else None
     
-    
-    
-    
     def add_output_node(self, id): 
         '''
         id : int
@@ -441,7 +438,7 @@ class open_digraph:  # for open directed graph
         assert path.endswith(".dot"), "path must end with .dot"
         s = "digraph G {\n\n"
 
-        # 3) Write out all nodes
+        # Write out all nodes
         #    - If it's an input node, add input="true"
         #    - If it's an output node, add output="true"
         #    - If it has a label, use label="..."
@@ -459,16 +456,22 @@ class open_digraph:  # for open directed graph
             else:
                 # no label
                 if verbose:
-                    attr_dict["label"] = f'{node_id}'  # or blank, up to you
+                    attr_dict["label"] = f'{node_id}'
                 else:
-                    # if you truly want an empty label, do ""
                     attr_dict["label"] = ""
 
-            # mark as input or output if relevant
+            # mark as input or output
             if node_id in self.inputs:
                 attr_dict["input"] = "true"
             if node_id in self.outputs:
                 attr_dict["output"] = "true"
+            
+            if node_id in self.inputs:
+                attr_dict["shape"] = "diamond"
+            elif node_id in self.outputs:
+                attr_dict["shape"] = "box"
+            else:
+                attr_dict["shape"] = "circle"
 
             # build final bracket string: e.g. [label="A", input="true"]
             if attr_dict:
@@ -476,12 +479,12 @@ class open_digraph:  # for open directed graph
                 attributes_str = ", ".join(f'{k}="{v}"' for k,v in attr_dict.items())
                 s += f'    v{node_id} [{attributes_str}];\n'
             else:
-                # if truly no attributes, just do v{node_id}
+                # if truly no attributes, just v{node_id}
                 s += f'    v{node_id};\n'
 
         s += "\n"
 
-        # 4) Write edges
+        #  Write edges
         #    for each node, for each child with multiplicity m:
         #    - if m=1 => v{i} -> v{c};
         #    - if m>1 => v{i} -> v{c} [mult=m];
@@ -496,7 +499,7 @@ class open_digraph:  # for open directed graph
 
         s += "\n}\n"
 
-        # 5) Write the DOT file
+        #  Write the dot file
         with open(path, "w") as f:
             f.write(s)
 
@@ -700,9 +703,9 @@ class Graph:
 
     def graph_from_adjacency_matrix(self, matrix):
         '''
-    convertit une matrice d'adjacence en un multigraphe.
-    param: Matrice d'adjacence (liste de listes d'entiers).
-    return: Un multigraphe représenté par la matrice d'adjacence.
+        convertit une matrice d'adjacence en un multigraphe.
+        param: Matrice d'adjacence (liste de listes d'entiers).
+        return: Un multigraphe représenté par la matrice d'adjacence.
         '''
         graph = Graph()
         n=len(matrix)
@@ -723,7 +726,7 @@ class Graph:
          inputs: le nombre de nœuds d'entrée et outputs, le nombre de nœuds de sortie (entier positif).
          form: Forme du graphe ("free", "DAG", "oriented", "loop-free", "undirected", "loop-free undirected").
     
-    '''
+        '''
 
         if form == "free":
             matrix = random_int_matrix(n, bound)
@@ -837,3 +840,4 @@ class bool_circ(open_digraph):
             else:
                 return False
         return True
+    
