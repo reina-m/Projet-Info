@@ -3,7 +3,7 @@ import os
 root = os.path.normpath(os.path.join(__file__, './../..'))
 sys.path.append(root) # allow us to fetch files from the project root
 import unittest
-from modules.open_digraph import open_digraph, node
+from modules.open_digraph import *
 
 # classe pour le test des methodes __init__ : 
 #############################################
