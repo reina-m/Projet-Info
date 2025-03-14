@@ -2,6 +2,8 @@ import os
 import copy
 import webbrowser
 import tempfile
+import random
+
 
 class node:
     def __init__(self, identity, label, parents, children):
@@ -378,16 +380,13 @@ class open_digraph:  # for open directed graph
        """
      
       
-   # Première passe : calcul des nouveaux indices
+ 
        new_ids = {node_id: node_id + n for node_id in self.nodes}
 
 
-       # Vérification des collisions
        if len(set(new_ids.values())) < len(new_ids):
            raise ValueError("Le décalage entraîne des collisions d'indices.")
 
-
-       # Seconde passe : mise à jour des nœuds
 
        new_nodes = {}
        for node_id, node in self.nodes.items():
@@ -400,8 +399,6 @@ class open_digraph:  # for open directed graph
            node.set_children(new_children)
            new_nodes[new_id] = node
 
-
-       # Mise à jour des attributs de la classe
        self.nodes = new_nodes
        self.inputs = [new_ids[input_id] for input_id in self.inputs]
        self.outputs = [new_ids[output_id] for output_id in self.outputs]
@@ -615,9 +612,194 @@ class open_digraph:  # for open directed graph
                     g.add_output_id(n_id)
 
         return g
+    
                 
+#############################################
+##            Matrix + Graph               ##
+#############################################
 
-            
+
+def random_int_list(n, bound):
+    '''
+    return une liste de taille n contenant des entiers aléatoires entre 0 et bound
+    '''
+    return [random.randrange(0, bound) for _ in range(n)]
+
+def random_int_matrix(n, bound, null_diag=True, number_generator=(lambda : random.random())):
+    '''
+    return une matrice n x n avec des entiers aléatoires entre 0 et bound
+    '''
+    res = []
+    for i in range(n):
+        line = []
+        for j in range(n):
+            line.append(int(bound*number_generator()))
+        res.append(line)
+        if null_diag:
+            res[i][i] = 0
+    return res
+
+def random_symetric_int_matrix(n, bound, null_diag = True):
+    '''
+    return une matrice symétrique n x n avec des entiers aléatoires entre 0 et bound, la diaginale est mise à zéro
+    '''
+    res = random_int_matrix(n, bound, null_diag)
+    for i in range(n):
+        for j in range(i + 1, n):
+            res[j][i] = res[i][j]      
+    return res
+
+def random_oriented_int_matrix(n ,bound, null_diag=True):
+    '''
+    return une matrice orientée n x n avec des entiers aléatoires entre 0 et bound
+    '''
+    res = random_int_matrix(n,bound,null_diag)
+    for i in range(n):
+        for j in range(i + 1,n):
+            if random.randrange(0, 2) == 1: 
+                res[i][j] = 0
+            else:
+                res[j][i] = 0
+    return res
+
+def random_triangular_int_matrix(n ,bound, null_diag = True):
+    '''
+    return une matrice triangulaire supérieure n x n avec des entiers aléatoires entre 0
+    '''
+    res = [[0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            res[i][j] = random.randrange(0, bound+1)
+    return res 
 
 
 
+#print( random_triangular_int_matrix(5, 100))
+class Graph:
+    def __init__(self):
+        self.nodes = set()
+        self.edges = []
+
+    def add_node(self, node_id):
+        """Ajoute un nœud au graphe."""
+        self.nodes.add(node_id)
+
+    def add_edge(self, src, dest):
+        """Ajoute une arête entre `src` et `dest`."""
+        self.edges.append((src, dest))
+
+    def graph_from_adjacency_matrix(self, matrix):
+        '''
+    convertit une matrice d'adjacence en un multigraphe.
+    param: Matrice d'adjacence (liste de listes d'entiers).
+    return: Un multigraphe représenté par la matrice d'adjacence.
+        '''
+        graph = Graph()
+        n=len(matrix)
+        for i in range(n):
+            graph.add_node(i)
+        for x in range(n):
+            for y in range(n):
+                for _ in range(matrix[x][y]):
+                    graph.add_edge(x,y)
+        return graph
+
+    def random_graph(self, n, bound, inputs=0, outputs= 0, form = "free"):
+        ''' 
+         return un graphe aléatoire suivant les contraintes spécifiées.
+    
+         n: le nombre de nœuds 
+         bound: la borne supérieure pour les entiers générés (entier positif).
+         inputs: le nombre de nœuds d'entrée et outputs, le nombre de nœuds de sortie (entier positif).
+         form: Forme du graphe ("free", "DAG", "oriented", "loop-free", "undirected", "loop-free undirected").
+    
+    '''
+
+        if form == "free":
+            matrix = random_int_matrix(n, bound)
+        elif form == "DAG":
+            matrix = random_triangular_int_matrix(n, bound)
+        elif form == "oriented":
+            matrix = random_oriented_int_matrix(n, bound)
+        elif form == "loop-free":
+            matrix = random_int_matrix(n, bound, null_diag=True)
+        elif form == "undirected":
+            matrix = random_symetric_int_matrix(n, bound, null_diag=False)
+        elif form == "loop-free undirected":
+            matrix = random_symetric_int_matrix(n, bound, null_diag=True)
+        else:
+            raise ValueError("Graphe inconnue")
+        
+        graph = self.graph_from_adjacency_matrix(matrix)
+        nodes = list(graph.nodes)
+        if inputs > len(nodes) or outputs > len(nodes):
+            raise ValueError("depasse le nombre de noeuds")
+        
+        graph.inputs = random.sample(nodes, inputs)
+        graph.outputs = random.sample(nodes, outputs)
+        return graph
+
+    def node_to_index(self):
+        '''
+         Return un dictionnaire associant chaque ID de nœud à un entier unique.
+         '''
+        return {node: idx for idx, node in enumerate(sorted(self.nodes))}
+
+
+    def adjacency_matrix(self):
+        '''
+        Extrait la matrice d'adjacence du graphe.
+        '''
+        n = len(self.nodes)
+        index_map = self.node_to_index()
+        matrix = [[0] * n for _ in range(n)]
+        for src, dest in self.edges:
+            i = index_map[src]
+            j = index_map[dest]
+            matrix[i][j] += 1
+        return matrix
+
+
+
+#############################################
+##                Bool_Circ               ##
+#############################################
+class bool_circ(open_digraph):
+    def __init__(self, graph):
+        if not graph.is_well_formed():
+            graph = open_digraph.empty()
+        
+        super().__init__(graph.inputs, graph.outputs, list(graph.nodes.values()))
+
+        
+        if not self.is_well_formed():
+            raise ValueError("Le graphe donné n'est pas un circuit booléen qui me plait ;).")
+
+        '''
+            g = open_digraph.empty()
+            super().__init__(graph.inputs, graph.outputs, list(grph.nodes.values()))'''
+
+
+    def is_well_formed(self):
+        if self.is_cyclic():
+            return False
+
+        for node in self.get_nodes():
+            label = node.get_label()
+            indegree, outdegree = node.indegree(), node.outdegree()
+
+            if label == '':
+                if indegree != 1:
+                    return False
+            elif label in ('&', '|', '^'):
+                if outdegree != 1:
+                    return False
+            elif label == '~':
+                if indegree != 1 or outdegree != 1:
+                    return False
+            elif label in ('0', '1'):
+                if outdegree != 0:
+                    return False
+            else:
+                return False
+        return True
