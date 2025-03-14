@@ -90,6 +90,19 @@ class node:
         if child_id in self.children:
             self.children.pop(child_id)
 
+
+
+    def indegree(self) -> int:
+       return sum(self.get_parents().values())
+
+
+    def outdegree(self) -> int:
+        return sum(self.get_children().values())
+
+
+    def degree(self) -> int:
+        return self.indegree() + self.outdegree()
+
 class open_digraph:  # for open directed graph
     def __init__(self, inputs, outputs, nodes):
         '''
@@ -331,6 +344,75 @@ class open_digraph:  # for open directed graph
         if not self.is_well_formed():
             raise AssertionError("asserrt_is_well_formed : graph is not well-formed.")
 
+    def is_cyclic(self):
+       """
+       Vérifie si le graphe contient un cycle.
+
+
+       Returns: True si le graphe est cyclique, False sinon.
+       """
+       copy = self.copy()
+       in_degree = {node_id: node.indegree() for node_id, node in copy.nodes.items()}
+       q = [node_id for node_id, deg in in_degree.items() if deg == 0]
+
+
+       while q:
+           node_id = q.pop(0)  #
+           for child_id in copy.nodes[node_id].get_children():
+               in_degree[child_id] -= 1
+               if in_degree[child_id] == 0:
+                   q.append(child_id)
+           copy.remove_node_by_id(node_id)
+
+
+       return len(copy.nodes) > 0
+    
+    
+    def shift_indices(self, n: int):
+       """
+  
+       """
+     
+      
+   # Première passe : calcul des nouveaux indices
+       new_ids = {node_id: node_id + n for node_id in self.nodes}
+
+
+       # Vérification des collisions
+       if len(set(new_ids.values())) < len(new_ids):
+           raise ValueError("Le décalage entraîne des collisions d'indices.")
+
+
+       # Seconde passe : mise à jour des nœuds
+
+       new_nodes = {}
+       for node_id, node in self.nodes.items():
+           new_id = new_ids[node_id]
+           new_parents = {new_ids[parent_id]: mult for parent_id, mult in node.get_parents().items()}
+           new_children = {new_ids[child_id]: mult for child_id, mult in node.get_children().items()}
+          
+           node.set_id(new_id)
+           node.set_parents(new_parents)
+           node.set_children(new_children)
+           new_nodes[new_id] = node
+
+
+       # Mise à jour des attributs de la classe
+       self.nodes = new_nodes
+       self.inputs = [new_ids[input_id] for input_id in self.inputs]
+       self.outputs = [new_ids[output_id] for output_id in self.outputs]
+
+
+    def min_id(self):
+      return min(self.nodes.keys()) if self.nodes else None
+
+
+    def max_id(self):
+      return max(self.nodes.keys()) if self.nodes else None
+    
+    
+    
+    
     def add_output_node(self, id): 
         '''
         id : int
