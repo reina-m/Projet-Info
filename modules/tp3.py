@@ -41,7 +41,7 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
 
 
 
-
+#print( random_triangular_int_matrix(5, 100))
 class Graph:
     def graph_from_adjacency_matrix(self, matrix):
         graph = Graph()
