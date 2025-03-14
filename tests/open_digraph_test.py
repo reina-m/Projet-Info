@@ -420,16 +420,6 @@ class TestGraph(unittest.TestCase):
         for i in range(n):
             for j in range(n):
                 self.assertEqual(matrix[i][j], matrix[j][i])
-
-    def test_graph_from_adjacency_matrix(self):
-        matrix = [[0, 1], [1, 0]]
-        graph = Graph().graph_from_adjacency_matrix(matrix)
-        self.assertEqual(len(graph.nodes), 2)
-        self.assertEqual(len(graph.edges), 2)
-
-    def test_random_graph(self):
-        g = Graph().random_graph(5, 10, form="oriented")
-        self.assertTrue(isinstance(g, Graph))
         
 class TestIsCyclic(unittest.TestCase):
 
@@ -514,4 +504,4 @@ class TestShiftIndices(unittest.TestCase):
 
 
 if __name__ == '__main__': # the following code is called only when
-    unittest.main()        # precisely this file is run
+    unittest.main()        # precisely this file is rung

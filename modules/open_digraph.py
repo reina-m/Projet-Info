@@ -189,6 +189,7 @@ class open_digraph:  # for open directed graph
 
         for i, (src, tgt) in enumerate(edges):
             m = mult[i] if mult else 1  # use the provided multiplicity or default to 1
+            m = mult[i] if mult else 1  # use the provided multiplicity or default to 1
             self.add_edge(src, tgt, m)
 
     
@@ -307,6 +308,7 @@ class open_digraph:  # for open directed graph
         nodes_id = set(self.get_nodes_id())
 
         # validate input/output nodes exist & their structure
+        # validate input/output nodes exist & their structure
         for node_id in self.inputs + self.outputs:
             if node_id not in nodes_id:
                 return False  # input/output node must exist in the graph
@@ -326,6 +328,7 @@ class open_digraph:  # for open directed graph
                 if len(parents) != 1 or list(parents.values())[0] != 1 or len(children) != 0:
                     return False
 
+        # validate node consistency and relationships
         # validate node consistency and relationships
         for node_id, node in self.nodes.items():
             if node.get_id() != node_id:
@@ -439,6 +442,7 @@ class open_digraph:  # for open directed graph
         s = "digraph G {\n\n"
 
         # Write out all nodes
+        # Write out all nodes
         #    - If it's an input node, add input="true"
         #    - If it's an output node, add output="true"
         #    - If it has a label, use label="..."
@@ -457,14 +461,23 @@ class open_digraph:  # for open directed graph
                 # no label
                 if verbose:
                     attr_dict["label"] = f'{node_id}'
+                    attr_dict["label"] = f'{node_id}'
                 else:
                     attr_dict["label"] = ""
 
+            # mark as input or output
             # mark as input or output
             if node_id in self.inputs:
                 attr_dict["input"] = "true"
             if node_id in self.outputs:
                 attr_dict["output"] = "true"
+            
+            if node_id in self.inputs:
+                attr_dict["shape"] = "diamond"
+            elif node_id in self.outputs:
+                attr_dict["shape"] = "box"
+            else:
+                attr_dict["shape"] = "circle"
             
             if node_id in self.inputs:
                 attr_dict["shape"] = "diamond"
@@ -480,10 +493,12 @@ class open_digraph:  # for open directed graph
                 s += f'    v{node_id} [{attributes_str}];\n'
             else:
                 # if truly no attributes, just v{node_id}
+                # if truly no attributes, just v{node_id}
                 s += f'    v{node_id};\n'
 
         s += "\n"
 
+        #  Write edges
         #  Write edges
         #    for each node, for each child with multiplicity m:
         #    - if m=1 => v{i} -> v{c};
@@ -499,6 +514,7 @@ class open_digraph:  # for open directed graph
 
         s += "\n}\n"
 
+        #  Write the dot file
         #  Write the dot file
         with open(path, "w") as f:
             f.write(s)
@@ -685,92 +701,88 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
             res[i][j] = random.randrange(0, bound+1)
     return res 
 
+def add_node(self, node_id):
+    """Ajoute un nœud au graphe."""
+    self.nodes.add(node_id)
 
+def add_edge(self, src, dest):
+    """Ajoute une arête entre `src` et `dest`."""
+    self.edges.append((src, dest))
 
-#print( random_triangular_int_matrix(5, 100))
-class Graph:
-    def __init__(self):
-        self.nodes = set()
-        self.edges = []
+def graph_from_adjacency_matrix(self, matrix):
+    '''
+    convertit une matrice d'adjacence en un multigraphe.
+    param: Matrice d'adjacence (liste de listes d'entiers).
+    return: Un multigraphe représenté par la matrice d'adjacence.
+    convertit une matrice d'adjacence en un multigraphe.
+    param: Matrice d'adjacence (liste de listes d'entiers).
+    return: Un multigraphe représenté par la matrice d'adjacence.
+    '''
+    graph = open_digraph([],[],[])
+    n=len(matrix)
+    for i in range(n):
+        graph.add_node(i)
+    for x in range(n):
+        for y in range(n):
+            for _ in range(matrix[x][y]):
+                graph.add_edge(x,y)
+    return graph
 
-    def add_node(self, node_id):
-        """Ajoute un nœud au graphe."""
-        self.nodes.add(node_id)
+def random_graph(self, n, bound, inputs=0, outputs= 0, form = "free"):
+    ''' 
+        return un graphe aléatoire suivant les contraintes spécifiées.
 
-    def add_edge(self, src, dest):
-        """Ajoute une arête entre `src` et `dest`."""
-        self.edges.append((src, dest))
+        n: le nombre de nœuds 
+        bound: la borne supérieure pour les entiers générés (entier positif).
+        inputs: le nombre de nœuds d'entrée et outputs, le nombre de nœuds de sortie (entier positif).
+        form: Forme du graphe ("free", "DAG", "oriented", "loop-free", "undirected", "loop-free undirected").
 
-    def graph_from_adjacency_matrix(self, matrix):
-        '''
-        convertit une matrice d'adjacence en un multigraphe.
-        param: Matrice d'adjacence (liste de listes d'entiers).
-        return: Un multigraphe représenté par la matrice d'adjacence.
-        '''
-        graph = Graph()
-        n=len(matrix)
-        for i in range(n):
-            graph.add_node(i)
-        for x in range(n):
-            for y in range(n):
-                for _ in range(matrix[x][y]):
-                    graph.add_edge(x,y)
-        return graph
-
-    def random_graph(self, n, bound, inputs=0, outputs= 0, form = "free"):
-        ''' 
-         return un graphe aléatoire suivant les contraintes spécifiées.
+    '''
     
-         n: le nombre de nœuds 
-         bound: la borne supérieure pour les entiers générés (entier positif).
-         inputs: le nombre de nœuds d'entrée et outputs, le nombre de nœuds de sortie (entier positif).
-         form: Forme du graphe ("free", "DAG", "oriented", "loop-free", "undirected", "loop-free undirected").
+
+    if form == "free":
+        matrix = random_int_matrix(n, bound)
+    elif form == "DAG":
+        matrix = random_triangular_int_matrix(n, bound)
+    elif form == "oriented":
+        matrix = random_oriented_int_matrix(n, bound)
+    elif form == "loop-free":
+        matrix = random_int_matrix(n, bound, null_diag=True)
+    elif form == "undirected":
+        matrix = random_symetric_int_matrix(n, bound, null_diag=False)
+    elif form == "loop-free undirected":
+        matrix = random_symetric_int_matrix(n, bound, null_diag=True)
+    else:
+        raise ValueError("Graphe inconnue")
     
-        '''
+    graph = self.graph_from_adjacency_matrix(matrix)
+    nodes = list(graph.nodes)
+    if inputs > len(nodes) or outputs > len(nodes):
+        raise ValueError("depasse le nombre de noeuds")
+    
+    graph.inputs = random.sample(nodes, inputs)
+    graph.outputs = random.sample(nodes, outputs)
+    return graph
 
-        if form == "free":
-            matrix = random_int_matrix(n, bound)
-        elif form == "DAG":
-            matrix = random_triangular_int_matrix(n, bound)
-        elif form == "oriented":
-            matrix = random_oriented_int_matrix(n, bound)
-        elif form == "loop-free":
-            matrix = random_int_matrix(n, bound, null_diag=True)
-        elif form == "undirected":
-            matrix = random_symetric_int_matrix(n, bound, null_diag=False)
-        elif form == "loop-free undirected":
-            matrix = random_symetric_int_matrix(n, bound, null_diag=True)
-        else:
-            raise ValueError("Graphe inconnue")
-        
-        graph = self.graph_from_adjacency_matrix(matrix)
-        nodes = list(graph.nodes)
-        if inputs > len(nodes) or outputs > len(nodes):
-            raise ValueError("depasse le nombre de noeuds")
-        
-        graph.inputs = random.sample(nodes, inputs)
-        graph.outputs = random.sample(nodes, outputs)
-        return graph
-
-    def node_to_index(self):
+def node_to_index(self):
+    '''
+        Return un dictionnaire associant chaque ID de nœud à un entier unique.
         '''
-         Return un dictionnaire associant chaque ID de nœud à un entier unique.
-         '''
-        return {node: idx for idx, node in enumerate(sorted(self.nodes))}
+    return {node: idx for idx, node in enumerate(sorted(self.nodes))}
 
 
-    def adjacency_matrix(self):
-        '''
-        Extrait la matrice d'adjacence du graphe.
-        '''
-        n = len(self.nodes)
-        index_map = self.node_to_index()
-        matrix = [[0] * n for _ in range(n)]
-        for src, dest in self.edges:
-            i = index_map[src]
-            j = index_map[dest]
-            matrix[i][j] += 1
-        return matrix
+def adjacency_matrix(self):
+    '''
+    Extrait la matrice d'adjacence du graphe.
+    '''
+    n = len(self.nodes)
+    index_map = self.node_to_index()
+    matrix = [[0] * n for _ in range(n)]
+    for src, dest in self.edges:
+        i = index_map[src]
+        j = index_map[dest]
+        matrix[i][j] += 1
+    return matrix
 
 
 
@@ -800,7 +812,7 @@ class bool_circ(open_digraph):
             raise ValueError("Le graphe donné n'est pas un circuit booléen qui me plait ;).")
 
         '''
-            g = open_digraph.empty()’
+            g = open_digraph.empty()
             super().__init__(graph.inputs, graph.outputs, list(grph.nodes.values()))'''
 
 
