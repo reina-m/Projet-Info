@@ -188,7 +188,7 @@ class open_digraph:  # for open directed graph
             raise ValueError("add_edges: mult list must be empty or have the same length as edges")
 
         for i, (src, tgt) in enumerate(edges):
-            m = mult[i] if mult else 1  # Use the provided multiplicity or default to 1
+            m = mult[i] if mult else 1  # use the provided multiplicity or default to 1
             self.add_edge(src, tgt, m)
 
     
