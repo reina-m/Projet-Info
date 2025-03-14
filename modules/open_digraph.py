@@ -209,22 +209,26 @@ class open_digraph:  # for open directed graph
         src: int; id of src
         tgt: int; id of tgt node
         removes edge from src to tgt
+        doesn't do anything if src, tgt don't exist
         '''
-        s = self.get_node_by_id(src)
-        t = self.get_node_by_id(tgt)
-        s.remove_child_once(tgt)
-        t.remove_parent_once(src)
+        if (src in self.get_nodes_id() and tgt in self.get_nodes_id()):
+            s = self.get_node_by_id(src)
+            t = self.get_node_by_id(tgt)
+            s.remove_child_once(tgt)
+            t.remove_parent_once(src)
 
     def remove_parallel_edges(self, src, tgt):
         '''
         src: int; id of src node
         tgt: int; id of tgt node
-        removes all edges from src to tgt 
+        removes all edges from src to tgt
+        doesn't do anything if src, tgt don't exist 
         '''
-        s = self.get_node_by_id(src)
-        t = self.get_node_by_id(tgt)
-        s.remove_child_id(tgt)
-        t.remove_parent_id(src)
+        if (src in self.get_nodes_id() and tgt in self.get_nodes_id()):
+            s = self.get_node_by_id(src)
+            t = self.get_node_by_id(tgt)
+            s.remove_child_id(tgt)
+            t.remove_parent_id(src)
 
     def remove_node_by_id(self, node_id):
         '''
@@ -527,8 +531,6 @@ class open_digraph:  # for open directed graph
                     g.add_input_id(n_id)
                 if "output" in node_attrs and node_attrs["output"].lower() in ["true","1"]:
                     g.add_output_id(n_id)
-
-                # store other unknown node attrs if you want; ignoring them here
 
         return g
                 

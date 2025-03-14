@@ -14,7 +14,7 @@ print(inspect.getsource(open_digraph.get_nodes))
 print("\ndocstring of node.__init__:")
 print(inspect.getdoc(node.__init__))
 
-# 1) SIMPLE GRAPH
+# graphe simple
 g = open_digraph.empty()
 n0 = g.add_node(label="A")
 n1 = g.add_node(label="B")
@@ -22,95 +22,73 @@ n2 = g.add_node(label="C")
 g.add_edge(n0, n1)
 g.add_edge(n1, n2)
 
-dot_path = "graph_simple.dot"
+dot_path = "graphe1.dot"
 g.save_as_dot_file(dot_path)
 print(f"Graph saved as: {dot_path}")
-
 # load the graph back from the .dot file
 g_loaded = open_digraph.from_dot_file(dot_path)
 print("\nLoaded simple graph from DOT file:")
 print(g_loaded)  # should use __str__
 
-# 2) GRAPH WITH INPUTS & OUTPUTS
-g_io = open_digraph.empty()
-a = g_io.add_node(label="X")
-b = g_io.add_node(label="Y")
-c = g_io.add_node(label="Z")
+# inputs / outputs
+g2 = open_digraph.empty()
+a = g2.add_node(label="A")
+b = g2.add_node(label="B")
+c = g2.add_node(label="C")
 
-# mark some as input/output
-g_io.add_input_id(a)
-g_io.add_output_id(c)
+g2.add_input_id(a)
+g2.add_output_id(c)
+g2.add_edge(a, b)
+g2.add_edge(b, c)
 
-# connect the nodes
-g_io.add_edge(a, b)
-g_io.add_edge(b, c)
-
-dot_path_io = "graph_io.dot"
-g_io.save_as_dot_file(dot_path_io)
+dot_path_io = "graphe2.dot"
+g2.save_as_dot_file(dot_path_io)
 print(f"\nGraph (with inputs/outputs) saved as: {dot_path_io}")
-
-g_io_loaded = open_digraph.from_dot_file(dot_path_io)
+g2_loaded = open_digraph.from_dot_file(dot_path_io)
 print("\nLoaded graph (inputs/outputs) from DOT file:")
-print(g_io_loaded)
+print(g2_loaded)
 
-# 3) GRAPH WITH MULTIPLE EDGES (multiplicity)
-g_mult = open_digraph.empty()
-m0 = g_mult.add_node(label="M0")
-m1 = g_mult.add_node(label="M1")
+# 3) (multiplicity)
+g3 = open_digraph.empty()
+a = g3.add_node(label="A")
+b = g3.add_node(label="B")
 
 # add 3 parallel edges from M0 to M1
-g_mult.add_edge(m0, m1, 3)
-
-dot_path_mult = "graph_mult.dot"
-g_mult.save_as_dot_file(dot_path_mult)
-print(f"\nGraph (multiple edges) saved as: {dot_path_mult}")
-
-g_mult_loaded = open_digraph.from_dot_file(dot_path_mult)
+g3.add_edge(a, b, 3)
+dot_path3 = "graphe3.dot"
+g3.save_as_dot_file(dot_path3)
+print(f"\nGraph (multiple edges) saved as: {dot_path3}")
+g3_loaded = open_digraph.from_dot_file(dot_path3)
 print("\nLoaded graph (multiple edges) from DOT file:")
-print(g_mult_loaded)
+print(g3_loaded)
 
-# 4) CHAIN GRAPH (longer chain of nodes)
-g_chain = open_digraph.empty()
-ch_nodes = [g_chain.add_node(label=f"N{i}") for i in range(5)]
-# create a chain N0 -> N1 -> N2 -> N3 -> N4
+# chain
+g4 = open_digraph.empty()
+ch_nodes = [g4.add_node(label=f"v{i}") for i in range(5)]
+# create a chain v0 -> v1 -> v2 -> v3 -> v4
 for i in range(len(ch_nodes) - 1):
-    g_chain.add_edge(ch_nodes[i], ch_nodes[i+1])
-
-dot_path_chain = "graph_chain.dot"
-g_chain.save_as_dot_file(dot_path_chain)
-print(f"\nChain graph saved as: {dot_path_chain}")
-
-g_chain_loaded = open_digraph.from_dot_file(dot_path_chain)
+    g4.add_edge(ch_nodes[i], ch_nodes[i+1])
+dot_path4 = "graphe4.dot"
+g4.save_as_dot_file(dot_path4)
+print(f"\nChain graph saved as: {dot_path4}")
+g4_loaded = open_digraph.from_dot_file(dot_path4)
 print("\nLoaded chain graph from DOT file:")
-print(g_chain_loaded)
+print(g4_loaded)
 
-# 5) A MIXED GRAPH (inputs, outputs, multiplicities, chain)
-g_mix = open_digraph.empty()
-
-mix0 = g_mix.add_node(label="Mix0")
-mix1 = g_mix.add_node(label="Mix1")
-mix2 = g_mix.add_node(label="Mix2")
-mix3 = g_mix.add_node(label="Mix3")
-
-# mark some as input, output
-g_mix.add_input_id(mix0)
-g_mix.add_input_id(mix1)
-g_mix.add_output_id(mix2)
-g_mix.add_output_id(mix3)
-
-# edges with multiplicity
-g_mix.add_edge(mix0, mix1, 3)
-# single edges
-g_mix.add_edge(mix0, mix3)
-
-dot_path_mix = "graph_mix.dot"
-g_mix.save_as_dot_file(dot_path_mix)
-print(f"\nMixed graph saved as: {dot_path_mix}")
-
-g_mix_loaded = open_digraph.from_dot_file(dot_path_mix)
-print("\nLoaded mixed graph from DOT file:")
-print(g_mix_loaded)
+g5 = open_digraph.empty()
+ch_nodes = [g5.add_node(label=f"v{i}") for i in range(5)]
+# create a chain v0 -> v1 -> v2 -> v3 -> v4
+g5.add_edge(ch_nodes[0], ch_nodes[1])
+g5.add_edge(ch_nodes[0], ch_nodes[2])
+g5.add_edge(ch_nodes[2], ch_nodes[4])
+g5.add_edge(ch_nodes[2], ch_nodes[4])
+dot_path5 = "graphe5.dot"
+g5.save_as_dot_file(dot_path5)
+print(f"\nChain graph saved as: {dot_path5}")
+g5_loaded = open_digraph.from_dot_file(dot_path5)
+print("\nLoaded chain graph from DOT file:")
+print(g5_loaded)
 
 print("\nAll graphs have been saved, loaded, and printed.\n")
-print("\nDisplaying the mixed graph...")
-g_mix.display(verbose=True) 
+print("\nDisplaying graph...")
+g5.display(verbose=True) 
