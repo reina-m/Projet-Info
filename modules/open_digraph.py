@@ -22,7 +22,8 @@ class node:
         return self.__str__()
     
     def copy(self):
-        return node(self.get_id(), self.get_label(), self.parents.copy(), self.children.copy())
+        return node(self.id, self.label, self.parents.copy(), self.children.copy())
+
     
     # getters
     def get_id(self):
@@ -109,8 +110,11 @@ class open_digraph:  # for open directed graph
     
     # returns a copy of the graph
     def copy(self):
-        return open_digraph(self.get_input_ids().copy(), self.get_output_ids().copy(), self.get_nodes().copy())
-    
+        nodes = []
+        for node in self.nodes.values():
+            nodes.append(node.copy())
+        _copy = open_digraph(self.inputs.copy(), self.outputs.copy(), nodes)
+        return _copy
     # getters 
 
     # returns list of input ids
@@ -179,13 +183,13 @@ class open_digraph:  # for open directed graph
         '''
         new_id = self.new_id()
         new_node = node(new_id, label, parents or {}, children or {})
-        for id, multiplicity in parents.items():
-            node = self.get_node_by_id(id)
-            if node:
+        for id, multiplicity in (parents or {}).items():
+            parent_node = self.get_node_by_id(id)  # ou un autre nom explicite
+            if parent_node:
                 new_node.add_parent_id(id, multiplicity)
-        for id, multiplicity in children.items():
-            node = self.get_node_by_id(id)
-            if node: 
+        for id, multiplicity in (children or {}).items():
+            child_node = self.get_node_by_id(id)  # ou un autre nom explicite
+            if child_node: 
                 new_node.add_child_id(id, multiplicity)
         self.nodes[new_id] = new_node
         return new_id
@@ -341,9 +345,13 @@ class open_digraph:  # for open directed graph
         for node in self.nodes.values():
                 if verbose:
                     f.write("    " + str(node.get_id()) + ' [label="' + str(node.get_id()) + ": " + node.get_label() + '"];\n')
-                else:
-                    f.write("    " + str(node.get_id()) + ' [label="' + node.get_label() + '"];\n')
-                
+              #  else:
+               #     f.write("    " + str(node.get_id()) + ' [label="' + node.get_label() + '"];\n')
+                if node.get_id() in self.get_input_ids():
+                    f.write ("    " + str(node.get_id()) +' [label = "' + node.get_label()+ '"];\n')
+                if node.get_id() in self.get_output_ids():
+                    f.write ("    " + str(node.get_id()) +' [label = "' + node.get_label()+ '"];\n')
+
         # arêtes
         for node in self.nodes.values():
                 for child_id, multiplicity in node.get_children().items():
@@ -353,10 +361,18 @@ class open_digraph:  # for open directed graph
         f.write("\n}")
         f.close()
 
+<<<<<<< Updated upstream
+=======
+
+
+
+
+>>>>>>> Stashed changes
     @classmethod
     def empty(cls):
         return cls([], [], [])
     
+<<<<<<< Updated upstream
     @classmethod
     def from_dot_file(cls, path): 
         '''
@@ -431,3 +447,41 @@ class open_digraph:  # for open directed graph
 
 
 
+=======
+
+    
+
+'''import os
+import tempfile
+
+class open_digraph:
+    # ... (le reste de votre classe open_digraph)
+
+    def display(self, verbose=False) -> None:
+        """
+        Affiche le graphe directement en utilisant Graphviz.
+        
+        Paramètres:
+        - verbose: Si True, affiche à la fois l'ID et le label des nœuds.
+        """
+        # Créer un fichier .dot temporaire
+        with tempfile.NamedTemporaryFile(suffix=".dot", delete=False) as temp_dot_file:
+            dot_file_path = temp_dot_file.name
+            self.save_as_dot_file(path=os.path.dirname(dot_file_path), verbose=verbose)
+
+        # Convertir le fichier .dot en PDF
+        pdf_file_path = dot_file_path.replace(".dot", ".pdf")
+        os.system(f"dot -Tpdf {dot_file_path} -o {pdf_file_path}")
+
+        # Ouvrir le fichier PDF
+        if os.name == "nt":  # Windows
+            os.startfile(pdf_file_path)
+        elif os.name == "posix":  # macOS ou Linux
+            os.system(f"open {pdf_file_path}")  # macOS
+            os.system(f"xdg-open {pdf_file_path}")  # Linux
+
+        # Supprimer le fichier .dot temporaire
+        os.remove(dot_file_path)
+        
+        '''
+>>>>>>> Stashed changes
