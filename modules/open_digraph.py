@@ -353,8 +353,6 @@ class open_digraph:  # for open directed graph
     def is_cyclic(self):
        """
        Vérifie si le graphe contient un cycle.
-
-
        Returns: True si le graphe est cyclique, False sinon.
        """
        copy = self.copy()
@@ -375,41 +373,53 @@ class open_digraph:  # for open directed graph
     
     
     def shift_indices(self, n: int):
-       """
-  
-       """
-     
-      
- 
-       new_ids = {node_id: node_id + n for node_id in self.nodes}
+        """
+        Décale tous les indices des nœuds du graphe de n unités.
+
+        Paramètre:
+        - n : entier, le décalage à appliquer aux indices des nœuds.
+              Peut être négatif.
+
+        Vérifie que le décalage n’entraîne pas de collisions d'indices.
+        Si tel est le cas, une exception est levée.
+        """
+        new_ids = {node_id: node_id + n for node_id in self.nodes}
 
 
-       if len(set(new_ids.values())) < len(new_ids):
-           raise ValueError("Le décalage entraîne des collisions d'indices.")
+        if len(set(new_ids.values())) < len(new_ids):
+            raise ValueError("Le décalage entraîne des collisions d'indices.")
 
 
-       new_nodes = {}
-       for node_id, node in self.nodes.items():
-           new_id = new_ids[node_id]
-           new_parents = {new_ids[parent_id]: mult for parent_id, mult in node.get_parents().items()}
-           new_children = {new_ids[child_id]: mult for child_id, mult in node.get_children().items()}
-          
-           node.set_id(new_id)
-           node.set_parents(new_parents)
-           node.set_children(new_children)
-           new_nodes[new_id] = node
+        new_nodes = {}
+        for node_id, node in self.nodes.items():
+            new_id = new_ids[node_id]
+            new_parents = {new_ids[parent_id]: mult for parent_id, mult in node.get_parents().items()}
+            new_children = {new_ids[child_id]: mult for child_id, mult in node.get_children().items()}
+            
+            node.set_id(new_id)
+            node.set_parents(new_parents)
+            node.set_children(new_children)
+            new_nodes[new_id] = node
 
-       self.nodes = new_nodes
-       self.inputs = [new_ids[input_id] for input_id in self.inputs]
-       self.outputs = [new_ids[output_id] for output_id in self.outputs]
+        self.nodes = new_nodes
+        self.inputs = [new_ids[input_id] for input_id in self.inputs]
+        self.outputs = [new_ids[output_id] for output_id in self.outputs]
 
 
     def min_id(self):
-      return min(self.nodes.keys()) if self.nodes else None
+        """
+        Retourne:
+        - L'ID du nœud avec l'ID le plus bas, None si le graphe est vide.
+        """
+        return min(self.nodes.keys()) if self.nodes else None
 
 
     def max_id(self):
-      return max(self.nodes.keys()) if self.nodes else None
+        """
+        Retourne:
+        - L'ID du nœud avec l'ID le plus haut, None si le graphe est vide.
+        """
+        return max(self.nodes.keys()) if self.nodes else None
     
     
     
@@ -766,6 +776,17 @@ class Graph:
 #############################################
 class bool_circ(open_digraph):
     def __init__(self, graph):
+        """
+        Constructeur de la classe bool_circ qui hérite de open_digraph.
+
+        Paramètre:
+        - graph : un objet de type open_digraph.
+
+        Cette méthode initialise un circuit booléen en s'assurant que le 
+        graphe donné est bien formé selon les règles d'un circuit booléen.
+        Si le graphe donné n'est pas bien formé, il est remplacé par un graphe vide.
+        Une exception est levée si le graphe n'est toujours pas valide.
+        """
         if not graph.is_well_formed():
             graph = open_digraph.empty()
         
@@ -776,11 +797,24 @@ class bool_circ(open_digraph):
             raise ValueError("Le graphe donné n'est pas un circuit booléen qui me plait ;).")
 
         '''
-            g = open_digraph.empty()
+            g = open_digraph.empty()’
             super().__init__(graph.inputs, graph.outputs, list(grph.nodes.values()))'''
 
 
     def is_well_formed(self):
+        """
+        Vérifie si le circuit booléen est bien formé.
+
+        Un circuit booléen bien formé doit respecter les critères suivants :
+        - Il ne doit pas contenir de cycles.
+        - Les nœuds de type 'copie' (label '') doivent avoir exactement un seul parent.
+        - Les portes logiques (ET '&', OU '|', XOR '^') doivent avoir exactement une sortie.
+        - Les portes NON ('~') doivent avoir exactement une entrée et une sortie.
+        - Les constantes '0' et '1' ne doivent avoir aucune sortie.
+
+        Retourne:
+        - True si le circuit booléen est valide, False sinon.
+        """
         if self.is_cyclic():
             return False
 
