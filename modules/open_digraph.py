@@ -637,6 +637,32 @@ class open_digraph:  # for open directed graph
 
         return g
     
+    @classmethod
+    def graph_from_adjacency_matrix(self, matrix):
+        '''
+        convertit une matrice d'adjacence en un multigraphe.
+        param: Matrice d'adjacence (liste de listes d'entiers).
+        return: Un multigraphe représenté par la matrice d'adjacence.
+        convertit une matrice d'adjacence en un multigraphe.
+        param: Matrice d'adjacence (liste de listes d'entiers).
+        return: Un multigraphe représenté par la matrice d'adjacence.
+        '''
+        g = open_digraph([], [], [])  # create an empty graph
+        n = len(matrix)
+        node_ids = {}
+
+        # create nodes
+        for _ in range(n):
+            n_id = g.add_node()
+            node_ids[_] = n_id
+
+        # create edges
+        for x in range(n):
+            for y in range(n):
+                if matrix[x][y] > 0:
+                    g.add_edge(node_ids[x], node_ids[y], matrix[x][y])
+        return g
+    
                 
 #############################################
 ##            Matrix + Graph               ##
@@ -695,31 +721,6 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
         for j in range(i + 1, n):
             res[i][j] = random.randrange(0, bound+1)
     return res 
-
-def graph_from_adjacency_matrix(self, matrix):
-    '''
-    convertit une matrice d'adjacence en un multigraphe.
-    param: Matrice d'adjacence (liste de listes d'entiers).
-    return: Un multigraphe représenté par la matrice d'adjacence.
-    convertit une matrice d'adjacence en un multigraphe.
-    param: Matrice d'adjacence (liste de listes d'entiers).
-    return: Un multigraphe représenté par la matrice d'adjacence.
-    '''
-    g = open_digraph([], [], [])  # create an empty graph
-    n = len(matrix)
-    node_ids = {}
-
-    # create nodes
-    for _ in range(n):
-        n_id = g.add_node()
-        node_ids[_] = n_id
-
-    # create edges
-    for x in range(n):
-        for y in range(n):
-            if matrix[x][y] > 0:
-                g.add_edge(node_ids[x], node_ids[y], matrix[x][y])
-    return g
 
 
 def random_graph(self, n, bound, inputs=0, outputs= 0, form = "free"):
