@@ -48,10 +48,16 @@ class node:
         self.children = children
 
     def add_child_id(self, id, multiplicity=1):
-        self.children[id] = multiplicity
+        if id in self.children.keys():
+            self.children[id] += multiplicity
+        else:
+            self.children[id] = multiplicity
 
     def add_parent_id(self, id, multiplicity=1):
-        self.parents[id] = multiplicity
+        if id in self.parents.keys():
+            self.parents[id] += multiplicity
+        else:
+            self.parents[id] = multiplicity
 
     def remove_parent_once(self, parent_id):
         '''
@@ -344,7 +350,6 @@ class open_digraph:  # for open directed graph
 
         return True
 
-
     def assert_is_well_formed(self):
         '''
         asserts the graph is well-formed
@@ -498,24 +503,19 @@ class open_digraph:  # for open directed graph
 
         s += "\n"
 
-        #  Write edges
-        #  Write edges
-        #    for each node, for each child with multiplicity m:
-        #    - if m=1 => v{i} -> v{c};
-        #    - if m>1 => v{i} -> v{c} [mult=m];
+        #  write edges
         for node_id, node in self.nodes.items():
             for child_id, multiplicity in node.get_children().items():
                 if multiplicity <= 1:
                     # single edge
                     s += f'    v{node_id} -> v{child_id};\n'
                 else:
-                    # multiple edges => one line with [mult=??]
-                    s += f'    v{node_id} -> v{child_id} [mult={multiplicity}];\n'
+                    # multiple edges
+                    for _ in range(multiplicity):
+                        s += f'    v{node_id} -> v{child_id};\n'
 
         s += "\n}\n"
 
-        #  Write the dot file
-        #  Write the dot file
         with open(path, "w") as f:
             f.write(s)
 
@@ -591,15 +591,10 @@ class open_digraph:  # for open directed graph
                     if tgt_name not in name_to_id:
                         name_to_id[tgt_name] = g.add_node()
 
-                    # interpret multiplicity if 'mult' in edge_attrs
-                    mult = 1
-                    if 'mult' in edge_attrs:
-                        try:
-                            mult = int(edge_attrs['mult'])
-                        except:
-                            pass
-                    # add as many edges as mult says
-                    g.add_edge(name_to_id[src_name], name_to_id[tgt_name], mult)
+                    # repeat the edge multiple times based on occurrences in the file
+                    mult = int(edge_attrs.get('mult', 1))
+                    g.add_edges([(name_to_id[src_name], name_to_id[tgt_name])] * mult)
+
                 # (ignore any other edge attrs like color, style, etc.)
 
             else:
@@ -701,14 +696,6 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
             res[i][j] = random.randrange(0, bound+1)
     return res 
 
-def add_node(self, node_id):
-    """Ajoute un nœud au graphe."""
-    self.nodes.add(node_id)
-
-def add_edge(self, src, dest):
-    """Ajoute une arête entre `src` et `dest`."""
-    self.edges.append((src, dest))
-
 def graph_from_adjacency_matrix(self, matrix):
     '''
     convertit une matrice d'adjacence en un multigraphe.
@@ -718,15 +705,22 @@ def graph_from_adjacency_matrix(self, matrix):
     param: Matrice d'adjacence (liste de listes d'entiers).
     return: Un multigraphe représenté par la matrice d'adjacence.
     '''
-    graph = open_digraph([],[],[])
-    n=len(matrix)
-    for i in range(n):
-        graph.add_node(i)
+    g = open_digraph([], [], [])  # create an empty graph
+    n = len(matrix)
+    node_ids = {}
+
+    # create nodes
+    for _ in range(n):
+        n_id = g.add_node()
+        node_ids[_] = n_id
+
+    # create edges
     for x in range(n):
         for y in range(n):
-            for _ in range(matrix[x][y]):
-                graph.add_edge(x,y)
-    return graph
+            if matrix[x][y] > 0:
+                g.add_edge(node_ids[x], node_ids[y], matrix[x][y])
+    return g
+
 
 def random_graph(self, n, bound, inputs=0, outputs= 0, form = "free"):
     ''' 

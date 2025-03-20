@@ -91,4 +91,4 @@ print(g5_loaded)
 
 print("\nAll graphs have been saved, loaded, and printed.\n")
 print("\nDisplaying graph...")
-g2.display(verbose=True) 
+g3.display(verbose=True) 
