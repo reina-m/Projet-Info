@@ -441,6 +441,29 @@ class open_digraph:  # for open directed graph
         else: 
             raise ValueError("add_output_node : Invalid given id")  
 
+    def node_to_index(self):
+        '''
+        Return un dictionnaire associant chaque ID de nœud à un entier unique.
+        '''
+        return {node: idx for idx, node in enumerate(sorted(self.nodes.keys()))}
+    
+
+    def adjacency_matrix(self):
+        '''
+        retourne la matrice d'adjacence du graphe (en ignorant inputs et outputs).
+        '''
+        n = len(self.nodes)
+        m = self.node_to_index()
+        a = [[0] * n for _ in range(n)]
+
+        for u, v in self.nodes.items():
+            i = m[u]  # row
+            for w, x in v.children.items():
+                j = m[w]  # column
+                a[i][j] = x 
+
+        return a
+
     def save_as_dot_file(self, path, verbose=False):
 
         assert path.endswith(".dot"), "path must end with .dot"
@@ -470,7 +493,6 @@ class open_digraph:  # for open directed graph
                 else:
                     attr_dict["label"] = ""
 
-            # mark as input or output
             # mark as input or output
             if node_id in self.inputs:
                 attr_dict["input"] = "true"
@@ -759,27 +781,6 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
         for j in range(i + 1, n):
             res[i][j] = random.randrange(0, bound+1)
     return res 
-
-
-def node_to_index(self):
-    '''
-        Return un dictionnaire associant chaque ID de nœud à un entier unique.
-        '''
-    return {node: idx for idx, node in enumerate(sorted(self.nodes))}
-
-
-def adjacency_matrix(self):
-    '''
-    Extrait la matrice d'adjacence du graphe.
-    '''
-    n = len(self.nodes)
-    index_map = self.node_to_index()
-    matrix = [[0] * n for _ in range(n)]
-    for src, dest in self.edges:
-        i = index_map[src]
-        j = index_map[dest]
-        matrix[i][j] += 1
-    return matrix
 
 
 
