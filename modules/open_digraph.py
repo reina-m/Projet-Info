@@ -443,6 +443,56 @@ class open_digraph:  # for open directed graph
         return {node: idx for idx, node in enumerate(sorted(self.nodes.keys()))}
     
 
+
+    def iparallel(self, g):
+        new_graph = g.copy()
+        shift = self.max_id() - new_graph.min_id() + 1 if self.nodes else 0
+        new_graph.shift_indices(shift)
+        for node in new_graph.get_nodes():
+            self.nodes[node.get_id()] = node
+        for input in new_graph.get_inputs_ids():
+            self.add_input_id(input)
+        for output in new_graph.get_outputs_ids():
+            self.add_output_id(output)
+
+    @classmethod
+    def parallel(cls, g1, g2):
+        new_graph = g1.copy()
+        new_graph.iparallel(g2)
+        return new_graph
+
+
+    def icompose(self, f):
+        if len(f.get_output_ids()) != len(self.get_input_ids()):
+            raise ValueError("Le nombre de sorties de f ne correspond pas au nombre d'entrées de self.")
+        new_graph = f.copy()
+        shift = self.max_id() - g.min_id() + 1 if self.nodes else 0
+        new_graph.shift_indices(shift)
+        for node in new_graph.get_nodes():
+            self.nodes[node.get_id()] = node
+        for f_output, self_input in zip(f.get_output_ids(), self.get_input_ids()):
+            self.add_edge(f_output, self_input)
+        self.set_inputs(new_graph.get_input_ids())
+        self.set_outputs(self.get_outputs_ids())
+
+    @classmethod
+    def compose(cls, g1, g2):
+        new_graph = g1.copy()
+        new_graph.icompose(g2)
+        return new_graph
+
+
+
+
+    @classmethod
+    def identity(cls, n):
+        g = cls.empty()
+        for i in range(n):
+            node_id = g.add_node(label= f'id{i}')
+            g.add_input_id(node_id)
+            g.add_output_id(node_id)
+        return g
+    
     def adjacency_matrix(self):
         '''
         retourne la matrice d'adjacence du graphe (en ignorant inputs et outputs).
@@ -779,7 +829,7 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
 
 
 #############################################
-##                Bool_Circ               ##
+##                Bool_Circ                ##
 #############################################
 class bool_circ(open_digraph):
     def __init__(self, graph):
@@ -837,3 +887,76 @@ class bool_circ(open_digraph):
                 return False
         return True
     
+#############################################
+##                 Direction               ##
+#############################################
+def dijkstra(self, src, tgt, direction=None):
+    """
+    Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
+
+    """
+    Q = [src]
+    dist = {src: 0}
+    prev = {}
+
+    while Q:
+        u = None
+        min_dist = None
+        for node in Q:
+            if min_dist is None or dist[node] < min_dist:
+                min_dist = dist[node]
+                u = node
+
+
+        if tgt is not None and u == tgt:
+            return dist, prev
+        if direction == -1:
+            neighbours = self.get_node_by_id(u).get_parents().keys()
+        elif direction == 1:
+            neighbours = self.get_node_by_id(u).get_children().keys()
+        else:
+            neighbours = list(self.get_node_by_id(u).get_parents().keys()) + list(self.get_node_by_id(u).get_children().keys())
+
+        for v in neighbours:
+            w = 1 
+            new_dist = dist[u] + w
+
+            if v not in dist or new_dist < dist[v]:
+                dist[v] = new_dist
+                prev[v] = u
+                if v not in Q:
+                    Q.append(v)
+
+    return dist, prev
+
+def shortest_path(self, src, tgt, direction=None):
+    """
+    Reconstitue le plus court chemin entre src et tgt.
+    """
+    dist, prev = self.dijkstra(src, tgt, direction)
+    
+    if tgt not in dist :
+        raise ValueError("Il n'existe pas de chemin entre les sommets.")
+    
+    path = []
+    current = tgt
+    while current is not None:
+        path.append(current)
+        current = prev[current] # ou prev.get(current)
+    path.reverse()
+    
+    return path
+
+
+def communs(self, u, v):
+    """
+    Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
+    """
+    dist_u, _ = self.dijkstra(u, direction=-1)  
+    dist_v, _ = self.dijkstra(v, direction=-1) 
+    communs = {}
+    for node in dist_u:
+        if node in dist_v:
+            communs[node] = (dist_u[node], dist_v[node])
+
+    return communs
