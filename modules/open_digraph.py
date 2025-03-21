@@ -99,7 +99,6 @@ class node:
             self.children.pop(child_id)
 
 
-
     def indegree(self) -> int:
        return sum(self.get_parents().values())
 
@@ -392,12 +391,8 @@ class open_digraph:  # for open directed graph
         Si tel est le cas, une exception est levée.
         """
         new_ids = {node_id: node_id + n for node_id in self.nodes}
-
-
         if len(set(new_ids.values())) < len(new_ids):
             raise ValueError("Le décalage entraîne des collisions d'indices.")
-
-
         new_nodes = {}
         for node_id, node in self.nodes.items():
             new_id = new_ids[node_id]
@@ -799,19 +794,11 @@ class bool_circ(open_digraph):
         Si le graphe donné n'est pas bien formé, il est remplacé par un graphe vide.
         Une exception est levée si le graphe n'est toujours pas valide.
         """
-        if not graph.is_well_formed():
-            graph = open_digraph.empty()
-        
-        super().__init__(graph.inputs, graph.outputs, list(graph.nodes.values()))
+        graph.assert_is_well_formed()
+        super().__init__(graph.get_input_ids().copy, graph.get_output_ids().copy, graph.id_node_map().copy())
 
-        
         if not self.is_well_formed():
             raise ValueError("Le graphe donné n'est pas un circuit booléen qui me plait ;).")
-
-        '''
-            g = open_digraph.empty()
-            super().__init__(graph.inputs, graph.outputs, list(grph.nodes.values()))'''
-
 
     def is_well_formed(self):
         """
