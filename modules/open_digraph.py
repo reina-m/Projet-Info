@@ -441,18 +441,20 @@ class open_digraph:  # for open directed graph
         Return un dictionnaire associant chaque ID de nœud à un entier unique.
         '''
         return {node: idx for idx, node in enumerate(sorted(self.nodes.keys()))}
-    
-
 
     def iparallel(self, g):
+        '''
+        @param : g an open digraph
+        changes graph to its composition with g 
+        '''
         new_graph = g.copy()
         shift = self.max_id() - new_graph.min_id() + 1 if self.nodes else 0
         new_graph.shift_indices(shift)
-        for node in new_graph.get_nodes():
-            self.nodes[node.get_id()] = node
-        for input in new_graph.get_inputs_ids():
+        for id, node in new_graph.get_id_node_map().items():
+            self.nodes[id] = node
+        for input in new_graph.get_input_ids():
             self.add_input_id(input)
-        for output in new_graph.get_outputs_ids():
+        for output in new_graph.get_output_ids():
             self.add_output_id(output)
 
     @classmethod
@@ -845,7 +847,8 @@ class bool_circ(open_digraph):
         Une exception est levée si le graphe n'est toujours pas valide.
         """
         graph.assert_is_well_formed()
-        super().__init__(graph.get_input_ids().copy, graph.get_output_ids().copy, graph.id_node_map().copy())
+        super().__init__(graph.get_input_ids().copy(), graph.get_output_ids().copy(), [])
+        self.nodes = graph.id_node_map().copy()
 
         if not self.is_well_formed():
             raise ValueError("Le graphe donné n'est pas un circuit booléen qui me plait ;).")
