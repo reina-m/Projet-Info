@@ -511,11 +511,17 @@ class open_digraph:  # for open directed graph
 
     @classmethod
     def identity(cls, n):
+        '''
+        @param : n (int)
+        returns : open_digraph, the n-identity graph 
+        '''
         g = cls.empty()
         for i in range(n):
-            node_id = g.add_node(label= f'id{i}')
-            g.add_input_id(node_id)
-            g.add_output_id(node_id)
+            input_id = g.add_node()
+            output_id = g.add_node()
+            g.add_input_id(input_id)
+            g.add_output_id(output_id)
+            g.add_edge(input_id, output_id)
         return g
     
     def adjacency_matrix(self):
