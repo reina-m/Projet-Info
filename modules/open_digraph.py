@@ -524,6 +524,50 @@ class open_digraph:  # for open directed graph
             g.add_edge(input_id, output_id)
         return g
     
+    def connected_components(self):
+        """
+        connected components in the graph.
+        returns:
+            - int: number of connected components.
+            - dict: Mapping of node id to its component index.
+        """
+        v = set()  # visited nodes
+        c = {}  # node-to-component map
+        idx = 0  # component index
+
+        def dfs(n, i):
+            s = [n]  # stack for DFS
+            while s:
+                x = s.pop()
+                if x not in v:
+                    v.add(x)
+                    c[x] = i
+                    s.extend(self.nodes[x].parents.keys() | self.nodes[x].children.keys())
+
+        for n in self.nodes:
+            if n not in v:
+                dfs(n, idx)
+                idx += 1
+
+        return idx, c
+
+
+    def connected_components_list(self):
+        """
+        returns a list of subgraphs, each corresponding to a connected component.
+        """
+        n, m = self.connected_components()
+        sg = [[] for _ in range(n)] #subgraph
+        
+        for x, i in m.items():
+            sg[i].append(self.nodes[x]) # add node to its respective component list
+        
+        return [open_digraph(
+            [inp for inp in self.get_inputs_ids() if m[inp] == i],
+            [out for out in self.get_outputs_ids() if m[out] == i],
+            sg[i]
+        ) for i in range(n)]
+    
     def adjacency_matrix(self):
         '''
         retourne la matrice d'adjacence du graphe (en ignorant inputs et outputs).
