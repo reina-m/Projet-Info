@@ -456,35 +456,58 @@ class open_digraph:  # for open directed graph
             self.add_input_id(input)
         for output in new_graph.get_output_ids():
             self.add_output_id(output)
+        return shift # optionnel, facilite la fonction icompose
 
     @classmethod
     def parallel(cls, g1, g2):
+        '''
+        @param : g1, g2 two open digraphs
+        return open digraph : the parallel composition of g1 and g2
+        '''
         new_graph = g1.copy()
         new_graph.iparallel(g2)
         return new_graph
 
 
     def icompose(self, f):
+        """
+        @param : f an open_digraph, the graph that will be composed with self in sequence
+        the current graph will contain f followed by self
+        """
         if len(f.get_output_ids()) != len(self.get_input_ids()):
             raise ValueError("Le nombre de sorties de f ne correspond pas au nombre d'entrées de self.")
-        new_graph = f.copy()
-        shift = self.max_id() - g.min_id() + 1 if self.nodes else 0
-        new_graph.shift_indices(shift)
-        for node in new_graph.get_nodes():
-            self.nodes[node.get_id()] = node
-        for f_output, self_input in zip(f.get_output_ids(), self.get_input_ids()):
-            self.add_edge(f_output, self_input)
-        self.set_inputs(new_graph.get_input_ids())
-        self.set_outputs(self.get_outputs_ids())
+        shift = self.iparallel(f)
+
+        # identify the old inputs of self that are no longer valid after shifting
+        old_inputs = [inp for inp in self.get_input_ids() if inp not in f.get_input_ids()]
+
+        # merge nodes sequentially: connect outputs of f to former inputs of self
+        for f_out, old_in in zip(f.get_output_ids(), old_inputs):
+            child_dict = self.get_node_by_id(old_in).get_children()
+            self.get_node_by_id(f_out).set_children(child_dict)
+            self.get_node_by_id(old_in).set_children({})
+            
+            for child_id in child_dict:
+                parent_dict = self.get_node_by_id(child_id).get_parents()
+                parent_dict[f_out] = parent_dict.pop(old_in)
+
+            # remove old input node as it's now replaced
+            self.remove_node_by_id(old_in)
+
+        # input and output lists
+        self.inputs = [i for i in self.get_input_ids() if i in f.get_input_ids()]
+        self.outputs = [o for o in self.get_output_ids() if o not in f.get_output_ids()]
+        return shift # could be useful (?)
 
     @classmethod
     def compose(cls, g1, g2):
+        """
+        @param : g1 g2 open_digraphs
+        returns : open digraph, g1 composed in sequence with g2
+        """
         new_graph = g1.copy()
         new_graph.icompose(g2)
         return new_graph
-
-
-
 
     @classmethod
     def identity(cls, n):
