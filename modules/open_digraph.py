@@ -450,7 +450,7 @@ class open_digraph:  # for open directed graph
         new_graph = g.copy()
         shift = self.max_id() - new_graph.min_id() + 1 if self.nodes else 0
         new_graph.shift_indices(shift)
-        for id, node in new_graph.get_id_node_map().items():
+        for id, node in new_graph.id_node_map().items():
             self.nodes[id] = node
         for input in new_graph.get_input_ids():
             self.add_input_id(input)
@@ -475,29 +475,36 @@ class open_digraph:  # for open directed graph
         the current graph will contain f followed by self
         """
         if len(f.get_output_ids()) != len(self.get_input_ids()):
-            raise ValueError("Le nombre de sorties de f ne correspond pas au nombre d'entrées de self.")
-        shift = self.iparallel(f)
+            raise ValueError("The number of outputs in f must match the number of inputs in self.")
 
-        # identify the old inputs of self that are no longer valid after shifting
-        old_inputs = [inp for inp in self.get_input_ids() if inp not in f.get_input_ids()]
+        s = self.iparallel(f)  # shift indices and merge f into self
+
+        old_in = [i for i in self.get_input_ids() if i not in f.get_input_ids()]
 
         # merge nodes sequentially: connect outputs of f to former inputs of self
-        for f_out, old_in in zip(f.get_output_ids(), old_inputs):
-            child_dict = self.get_node_by_id(old_in).get_children()
-            self.get_node_by_id(f_out).set_children(child_dict)
-            self.get_node_by_id(old_in).set_children({})
-            
-            for child_id in child_dict:
-                parent_dict = self.get_node_by_id(child_id).get_parents()
-                parent_dict[f_out] = parent_dict.pop(old_in)
+        for f_out, o_in in zip(f.get_output_ids(), old_in):
+            ch = self.get_node_by_id(o_in).get_children()
+            self.get_node_by_id(f_out).set_children(ch)
+            self.get_node_by_id(o_in).set_children({})
 
-            # remove old input node as it's now replaced
-            self.remove_node_by_id(old_in)
+            for c in ch:
+                p = self.get_node_by_id(c).get_parents()
+                p[f_out] = p.pop(o_in)
 
-        # input and output lists
-        self.inputs = [i for i in self.get_input_ids() if i in f.get_input_ids()]
-        self.outputs = [o for o in self.get_output_ids() if o not in f.get_output_ids()]
-        return shift # could be useful (?)
+            self.remove_node_by_id(o_in)  # remove old input node
+
+        # updating input and output lists
+        i_list = list(self.get_inputs_ids()).copy()
+        for i in i_list:
+            if i not in f.get_inputs_ids():
+                self.inputs.remove(i)
+
+        o_list = list(self.get_outputs_ids()).copy()
+        for o in o_list:
+            if o in f.get_outputs_ids():
+                self.outputs.remove(o)
+
+        return s
 
     @classmethod
     def compose(cls, g1, g2):
