@@ -663,6 +663,44 @@ class open_digraph:  # for open directed graph
                     g.add_edge(node_ids[x], node_ids[y], matrix[x][y])
         return g
     
+    @classmethod
+    def random_graph(cls, n, bound, inputs=0, outputs= 0, form = "free"):
+        ''' 
+            return un graphe aléatoire suivant les contraintes spécifiées.
+
+            n: le nombre de nœuds 
+            bound: la borne supérieure pour les entiers générés (entier positif).
+            inputs: le nombre de nœuds d'entrée et outputs, le nombre de nœuds de sortie (entier positif).
+            form: Forme du graphe ("free", "DAG", "oriented", "loop-free", "undirected", "loop-free undirected").
+
+        '''
+        
+
+        if form == "free":
+            matrix = random_int_matrix(n, bound)
+        elif form == "DAG":
+            matrix = random_triangular_int_matrix(n, bound)
+        elif form == "oriented":
+            matrix = random_oriented_int_matrix(n, bound)
+        elif form == "loop-free":
+            matrix = random_int_matrix(n, bound, null_diag=True)
+        elif form == "undirected":
+            matrix = random_symetric_int_matrix(n, bound, null_diag=False)
+        elif form == "loop-free undirected":
+            matrix = random_symetric_int_matrix(n, bound, null_diag=True)
+        else:
+            raise ValueError("Graphe inconnue")
+        
+        graph = cls.graph_from_adjacency_matrix(matrix)
+        nodes = list(graph.nodes.keys())
+        if inputs > len(nodes) or outputs > len(nodes):
+            raise ValueError("depasse le nombre de noeuds")
+        
+        graph.inputs = random.sample(nodes, inputs)
+        remaining_nodes = [n for n in nodes if n not in graph.inputs]
+        graph.outputs = random.sample(remaining_nodes, outputs)
+        return graph
+    
                 
 #############################################
 ##            Matrix + Graph               ##
@@ -722,42 +760,6 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
             res[i][j] = random.randrange(0, bound+1)
     return res 
 
-
-def random_graph(self, n, bound, inputs=0, outputs= 0, form = "free"):
-    ''' 
-        return un graphe aléatoire suivant les contraintes spécifiées.
-
-        n: le nombre de nœuds 
-        bound: la borne supérieure pour les entiers générés (entier positif).
-        inputs: le nombre de nœuds d'entrée et outputs, le nombre de nœuds de sortie (entier positif).
-        form: Forme du graphe ("free", "DAG", "oriented", "loop-free", "undirected", "loop-free undirected").
-
-    '''
-    
-
-    if form == "free":
-        matrix = random_int_matrix(n, bound)
-    elif form == "DAG":
-        matrix = random_triangular_int_matrix(n, bound)
-    elif form == "oriented":
-        matrix = random_oriented_int_matrix(n, bound)
-    elif form == "loop-free":
-        matrix = random_int_matrix(n, bound, null_diag=True)
-    elif form == "undirected":
-        matrix = random_symetric_int_matrix(n, bound, null_diag=False)
-    elif form == "loop-free undirected":
-        matrix = random_symetric_int_matrix(n, bound, null_diag=True)
-    else:
-        raise ValueError("Graphe inconnue")
-    
-    graph = self.graph_from_adjacency_matrix(matrix)
-    nodes = list(graph.nodes)
-    if inputs > len(nodes) or outputs > len(nodes):
-        raise ValueError("depasse le nombre de noeuds")
-    
-    graph.inputs = random.sample(nodes, inputs)
-    graph.outputs = random.sample(nodes, outputs)
-    return graph
 
 def node_to_index(self):
     '''
