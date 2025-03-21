@@ -494,14 +494,14 @@ class open_digraph:  # for open directed graph
             self.remove_node_by_id(o_in)  # remove old input node
 
         # updating input and output lists
-        i_list = list(self.get_inputs_ids()).copy()
+        i_list = list(self.get_input_ids()).copy()
         for i in i_list:
-            if i not in f.get_inputs_ids():
+            if i not in f.get_input_ids():
                 self.inputs.remove(i)
 
-        o_list = list(self.get_outputs_ids()).copy()
+        o_list = list(self.get_output_ids()).copy()
         for o in o_list:
-            if o in f.get_outputs_ids():
+            if o in f.get_output_ids():
                 self.outputs.remove(o)
 
         return s
