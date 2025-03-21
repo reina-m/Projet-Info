@@ -725,7 +725,7 @@ class open_digraph:  # for open directed graph
     
                 
 #############################################
-##            Matrix + Graph               ##
+##            Matrix                       ##
 #############################################
 
 
@@ -781,7 +781,6 @@ def random_triangular_int_matrix(n ,bound, null_diag = True):
         for j in range(i + 1, n):
             res[i][j] = random.randrange(0, bound+1)
     return res 
-
 
 
 #############################################
