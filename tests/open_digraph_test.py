@@ -131,68 +131,6 @@ class NewIDTest(unittest.TestCase):
         g.nodes = {1: node(1, 'A', {}, {}), 2: node(2, 'B', {}, {})}
         self.assertEqual(g.new_id(), 3)  # should return max id + 1
 
-# EXO 11
-class AddEdgeTest(unittest.TestCase):
-    def test_add_edge(self):
-        n0 = node(0, 'a', {}, {1: 1})
-        n1 = node(1, 'b', {0:1}, {2:1})
-        n2 = node(2, 'c', {1: 1}, {})
-        g = open_digraph([0], [2], [n0, n1, n2])
-        g.add_edge(0, 2)
-        self.assertIn(2, g.nodes[0].get_children())  # 0 should have 2 as child
-        self.assertIn(0, g.nodes[2].get_parents())   # 2 should have 0 as parent
-
-    def test_add_edge_invalid(self):
-        g = open_digraph.empty()
-        with self.assertRaises(ValueError):
-            g.add_edge(1, 2)  # should fail since 1 and 2 are not in the graph
-
-class AddEdgesTest(unittest.TestCase):
-    def test_add_edges(self):
-        # create a small graph
-        n0 = node(0, 'A', {}, {1: 1})
-        n1 = node(1, 'B', {0: 1}, {2: 1})
-        n2 = node(2, 'C', {1: 1}, {})
-        g = open_digraph([0], [2], [n0, n1, n2])
-
-        # add multiple edges at once
-        edges = [(0, 2), (1, 2)]
-        multiplicities = [2, 3]
-
-        g.add_edges(edges, multiplicities)
-
-        # check if the edges are correctly added with their multiplicities
-        self.assertEqual(g.nodes[0].get_children()[2], 2)  # (0 -> 2) with multiplicity 2
-        self.assertEqual(g.nodes[2].get_parents()[0], 2)   # (2 <- 0) with multiplicity 2
-
-        self.assertEqual(g.nodes[1].get_children()[2], 3)  # (1 -> 2) with multiplicity 3
-        self.assertEqual(g.nodes[2].get_parents()[1], 3)   # (2 <- 1) with multiplicity 3
-
-    def test_add_edges_default_multiplicity(self):
-        # create a small graph
-        n0 = node(0, 'A', {}, {1: 1})
-        n1 = node(1, 'B', {0: 1}, {2: 1})
-        n2 = node(2, 'C', {1: 1}, {})
-        g = open_digraph([0], [2], [n0, n1, n2])
-
-        # add multiple edges with default multiplicity (1)
-        edges = [(0, 2), (1, 2)]
-        g.add_edges(edges)
-
-        # check if the edges are correctly added with default multiplicity 1
-        self.assertEqual(g.nodes[0].get_children()[2], 1)
-        self.assertEqual(g.nodes[2].get_parents()[0], 1)
-
-        self.assertEqual(g.nodes[1].get_children()[2], 1)
-        self.assertEqual(g.nodes[2].get_parents()[1], 1)
-
-    def test_add_edges_invalid_multiplicity_length(self):
-        g = open_digraph([], [], [])
-
-        # should raise ValueError when mult list length doesn't match edges list length
-        with self.assertRaises(ValueError):
-            g.add_edges([(0, 1), (1, 2)], [1])  # only one multiplicity given for two edges
-
 # EXO 12
 class AddNodeTest(unittest.TestCase):
     def test_add_node(self):

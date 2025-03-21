@@ -563,8 +563,8 @@ class open_digraph:  # for open directed graph
             sg[i].append(self.nodes[x]) # add node to its respective component list
         
         return [open_digraph(
-            [inp for inp in self.get_inputs_ids() if m[inp] == i],
-            [out for out in self.get_outputs_ids() if m[out] == i],
+            [inp for inp in self.get_input_ids() if m[inp] == i],
+            [out for out in self.get_output_ids() if m[out] == i],
             sg[i]
         ) for i in range(n)]
     
@@ -661,13 +661,13 @@ class open_digraph:  # for open directed graph
         with open(path, "w") as f:
             f.write(s)
 
-    def display(self, verbose=False):
+    def display(self, verbose=False, filename_prefix="my_graph"):
         """
         Saves the graph to a fixed .dot file, converts it to a PNG using Graphviz,
         then opens the PNG in the default viewer (on macOS, Preview).
         """
-        dot_path = "my_graph.dot"
-        png_path = "my_graph.png"
+        dot_path = f"{filename_prefix}.dot"
+        png_path = f"{filename_prefix}.png"
         self.save_as_dot_file(dot_path, verbose=verbose)
         # convert the .dot file to a PNG
         os.system(f"dot -Tpng '{dot_path}' -o '{png_path}'")
