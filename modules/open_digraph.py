@@ -469,42 +469,30 @@ class open_digraph:  # for open directed graph
         return new_graph
 
 
-    def icompose(self, f):
+    def icompose(self, g):
         """
         @param : f an open_digraph, the graph that will be composed with self in sequence
         the current graph will contain f followed by self
         """
-        if len(f.get_output_ids()) != len(self.get_input_ids()):
-            raise ValueError("The number of outputs in f must match the number of inputs in self.")
+        # check #outs == #ins
+        if len(g.get_output_ids()) != len(self.get_input_ids()):
+            raise ValueError("Mismatch in out/in counts")
 
-        s = self.iparallel(f)  # shift indices and merge f into self
+        # parallel-merge g into self, get shift
+        s = self.iparallel(g)
 
-        old_in = [i for i in self.get_input_ids() if i not in f.get_input_ids()]
+        # shifted IDs of g's outs/ins
+        go = [x + s for x in g.get_output_ids()]
+        gi = [x + s for x in g.get_input_ids()]
 
-        # merge nodes sequentially: connect outputs of f to former inputs of self
-        for f_out, o_in in zip(f.get_output_ids(), old_in):
-            ch = self.get_node_by_id(o_in).get_children()
-            self.get_node_by_id(f_out).set_children(ch)
-            self.get_node_by_id(o_in).set_children({})
+        # wire g's outs -> self's current ins
+        for si, fo in zip(self.get_input_ids(), go):
+            self.add_edge(fo, si)
 
-            for c in ch:
-                p = self.get_node_by_id(c).get_parents()
-                p[f_out] = p.pop(o_in)
+        # final inputs become g's (shifted)
+        self.set_inputs(gi)
+        return self
 
-            self.remove_node_by_id(o_in)  # remove old input node
-
-        # updating input and output lists
-        i_list = list(self.get_input_ids()).copy()
-        for i in i_list:
-            if i not in f.get_input_ids():
-                self.inputs.remove(i)
-
-        o_list = list(self.get_output_ids()).copy()
-        for o in o_list:
-            if o in f.get_output_ids():
-                self.outputs.remove(o)
-
-        return s
 
     @classmethod
     def compose(cls, g1, g2):
@@ -733,7 +721,7 @@ class open_digraph:  # for open directed graph
         return self.dijkstra(src, tgt, direction=0)[0][tgt]
 
 
-    def communs(self, u, v):
+    def ancestors_in_common(self, u, v):
         """
         Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
         """
