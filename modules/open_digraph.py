@@ -470,10 +470,30 @@ class open_digraph:  # for open directed graph
 
 
     def icompose(self, g):
+    def icompose(self, g):
         """
         @param : f an open_digraph, the graph that will be composed with self in sequence
         the current graph will contain f followed by self
         """
+        # check #outs == #ins
+        if len(g.get_output_ids()) != len(self.get_input_ids()):
+            raise ValueError("Mismatch in out/in counts")
+
+        # parallel-merge g into self, get shift
+        s = self.iparallel(g)
+
+        # shifted IDs of g's outs/ins
+        go = [x + s for x in g.get_output_ids()]
+        gi = [x + s for x in g.get_input_ids()]
+
+        # wire g's outs -> self's current ins
+        for si, fo in zip(self.get_input_ids(), go):
+            self.add_edge(fo, si)
+
+        # final inputs become g's (shifted)
+        self.set_inputs(gi)
+        return self
+
         # check #outs == #ins
         if len(g.get_output_ids()) != len(self.get_input_ids()):
             raise ValueError("Mismatch in out/in counts")
@@ -670,6 +690,69 @@ class open_digraph:  # for open directed graph
         abs_png = os.path.abspath(png_path)
         webbrowser.open(f"file://{abs_png}")
         os.remove(dot_path)
+    
+    #############################################
+    ##                 Direction               ##
+    #############################################
+    def dijkstra(self, src, tgt, direction=None):
+        """
+        Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
+
+        """
+        Q = [src]
+        dist = {src: 0}
+        prev = {}
+
+        while Q:
+            u = None
+            min_dist = None
+            for node in Q:
+                if min_dist is None or dist[node] < min_dist:
+                    min_dist = dist[node]
+                    u = node
+
+
+            if tgt is not None and u == tgt:
+                return dist, prev
+            Q.remove(u)
+            if direction == -1:
+                neighbours = self.get_node_by_id(u).get_parents().keys()
+            elif direction == 1:
+                neighbours = self.get_node_by_id(u).get_children().keys()
+            else: # bidirection
+                neighbours = list(self.get_node_by_id(u).get_parents().keys()) + list(self.get_node_by_id(u).get_children().keys())
+
+            for v in neighbours:
+                w = 1
+                new_dist = dist[u] + w
+
+                if v not in dist or new_dist < dist[v]:
+                    dist[v] = new_dist
+                    prev[v] = u
+                    if v not in Q:
+                        Q.append(v)
+
+        return dist, prev
+
+    def shortest_path(self, src, tgt):
+        """
+        Reconstitue le plus court chemin entre src et tgt.
+        """
+        return self.dijkstra(src, tgt, direction=0)[0][tgt]
+
+
+    def ancestors_in_common(self, u, v):
+        """
+        Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
+        """
+        dist_u, _ = self.dijkstra(u, direction=-1)  
+        dist_v, _ = self.dijkstra(v, direction=-1) 
+        communs = {}
+        for node in dist_u:
+            if node in dist_v:
+                communs[node] = (dist_u[node], dist_v[node])
+
+        return communs
     
     #############################################
     ##                 Direction               ##
