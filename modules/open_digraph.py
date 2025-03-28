@@ -817,16 +817,18 @@ class open_digraph:  # for open directed graph
 
         return l
     
-    def node_depth(self, node):
+    def node_depth(self, node_id, l=None):
         '''
-        @param : a node in the graph (must be cyclic)
+        @param : the id of a node in the graph (must be cyclic)
+        l the topological sort of the graph (optional)
         returns : int , the depth of the node in the graph
         '''
-        if node not in self.get_nodes():
+        if node not in self.get_nodes_id():
             raise ValueError("node_depth : node not in graph")
-        l = self.topological_sort()
+        if l is None:
+            l = self.topological_sort()
         for i, lvl in enumerate(l):
-            if node.get_id() in lvl:
+            if node_id in lvl:
                 return i+1 # no such depth as 0
             
     def graph_depth(self):
@@ -834,6 +836,42 @@ class open_digraph:  # for open directed graph
         returns the depth of the graph (must be acyclic)
         '''
         return len(self.topological_sort)
+    
+    def longest_path_from_to(self, u, v):
+        '''
+        @param: u (start node id), v (target node id)
+        @return: (int) longest distance, (list) path from u to v
+        '''
+        l = self.topological_sort()
+        k = self.node_depth(self.get_node_by_id(u), l=l)
+        
+        d = {u: 0}   # distances
+        p = {}       # prev map
+
+        for lvl in l[k+1:]:
+            for w in lvl:
+                best, b_d = None, -1
+                for par in self.get_node_by_id(w).get_parents():
+                    if par in d and d[par] > b_d:
+                        best, b_d = par, d[par]
+                if best is not None:
+                    d[w] = b_d + 1
+                    p[w] = best
+                if w == v:
+                    break
+            if v in d:
+                break
+
+        if v not in d:
+            return -1, []
+
+        # reconstruct path
+        path = [v]
+        while path[-1] != u:
+            path.append(p[path[-1]])
+        path.reverse()
+        return d[v], path
+
 
     @classmethod
     def empty(cls):
