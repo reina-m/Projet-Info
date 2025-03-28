@@ -578,37 +578,6 @@ class open_digraph:  # for open directed graph
                 a[i][j] = x 
 
         return a
-
-    def topological_sort(self):
-        if self.is_cyclic():
-            raise ValueError("Le graphe est cyclique")
-
-        graph_copy = self.copy()
-        l = [] 
-
-        while graph_copy.nodes:
-            co_feuilles = [node_id for node_id, node in graph_copy.nodes.items() if not node.parents]
-            if not co_feuilles:  
-                raise ValueError("Le graphe devrait être acyclique mais nope.")
-            l.append(co_feuilles)
-            for node_id in co_feuilles:
-                graph_copy.remove_node_by_id(node_id)
-
-        return l
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     def save_as_dot_file(self, path, verbose=False):
 
@@ -827,6 +796,44 @@ class open_digraph:  # for open directed graph
                 communs[node] = (dist_u[node], dist_v[node])
 
         return communs
+    
+    def topological_sort(self):
+        '''
+        sorts a graph topologically 
+        '''
+        if self.is_cyclic():
+            raise ValueError("Le graphe est cyclique")
+
+        graph_copy = self.copy()
+        l = [] 
+
+        while graph_copy.nodes:
+            co_feuilles = [node_id for node_id, node in graph_copy.nodes.items() if not node.parents]
+            if not co_feuilles:  
+                raise ValueError("Le graphe devrait être acyclique mais nope.")
+            l.append(co_feuilles)
+            for node_id in co_feuilles:
+                graph_copy.remove_node_by_id(node_id)
+
+        return l
+    
+    def node_depth(self, node):
+        '''
+        @param : a node in the graph (must be cyclic)
+        returns : int , the depth of the node in the graph
+        '''
+        if node not in self.get_nodes():
+            raise ValueError("node_depth : node not in graph")
+        l = self.topological_sort()
+        for i, lvl in enumerate(l):
+            if node.get_id() in lvl:
+                return i+1 # no such depth as 0
+            
+    def graph_depth(self):
+        '''
+        returns the depth of the graph (must be acyclic)
+        '''
+        return len(self.topological_sort)
 
     @classmethod
     def empty(cls):
