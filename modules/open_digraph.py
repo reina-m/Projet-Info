@@ -469,42 +469,30 @@ class open_digraph:  # for open directed graph
         return new_graph
 
 
-    def icompose(self, f):
+    def icompose(self, g):
         """
         @param : f an open_digraph, the graph that will be composed with self in sequence
         the current graph will contain f followed by self
         """
-        if len(f.get_output_ids()) != len(self.get_input_ids()):
-            raise ValueError("The number of outputs in f must match the number of inputs in self.")
+        # check #outs == #ins
+        if len(g.get_output_ids()) != len(self.get_input_ids()):
+            raise ValueError("Mismatch in out/in counts")
 
-        s = self.iparallel(f)  # shift indices and merge f into self
+        # parallel-merge g into self, get shift
+        s = self.iparallel(g)
 
-        old_in = [i for i in self.get_input_ids() if i not in f.get_input_ids()]
+        # shifted IDs of g's outs/ins
+        go = [x + s for x in g.get_output_ids()]
+        gi = [x + s for x in g.get_input_ids()]
 
-        # merge nodes sequentially: connect outputs of f to former inputs of self
-        for f_out, o_in in zip(f.get_output_ids(), old_in):
-            ch = self.get_node_by_id(o_in).get_children()
-            self.get_node_by_id(f_out).set_children(ch)
-            self.get_node_by_id(o_in).set_children({})
+        # wire g's outs -> self's current ins
+        for si, fo in zip(self.get_input_ids(), go):
+            self.add_edge(fo, si)
 
-            for c in ch:
-                p = self.get_node_by_id(c).get_parents()
-                p[f_out] = p.pop(o_in)
+        # final inputs become g's (shifted)
+        self.set_inputs(gi)
+        return self
 
-            self.remove_node_by_id(o_in)  # remove old input node
-
-        # updating input and output lists
-        i_list = list(self.get_input_ids()).copy()
-        for i in i_list:
-            if i not in f.get_input_ids():
-                self.inputs.remove(i)
-
-        o_list = list(self.get_output_ids()).copy()
-        for o in o_list:
-            if o in f.get_output_ids():
-                self.outputs.remove(o)
-
-        return s
 
     @classmethod
     def compose(cls, g1, g2):
@@ -682,6 +670,69 @@ class open_digraph:  # for open directed graph
         abs_png = os.path.abspath(png_path)
         webbrowser.open(f"file://{abs_png}")
         os.remove(dot_path)
+    
+    #############################################
+    ##                 Direction               ##
+    #############################################
+    def dijkstra(self, src, tgt, direction=None):
+        """
+        Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
+
+        """
+        Q = [src]
+        dist = {src: 0}
+        prev = {}
+
+        while Q:
+            u = None
+            min_dist = None
+            for node in Q:
+                if min_dist is None or dist[node] < min_dist:
+                    min_dist = dist[node]
+                    u = node
+
+
+            if tgt is not None and u == tgt:
+                return dist, prev
+            Q.remove(u)
+            if direction == -1:
+                neighbours = self.get_node_by_id(u).get_parents().keys()
+            elif direction == 1:
+                neighbours = self.get_node_by_id(u).get_children().keys()
+            else: # bidirection
+                neighbours = list(self.get_node_by_id(u).get_parents().keys()) + list(self.get_node_by_id(u).get_children().keys())
+
+            for v in neighbours:
+                w = 1
+                new_dist = dist[u] + w
+
+                if v not in dist or new_dist < dist[v]:
+                    dist[v] = new_dist
+                    prev[v] = u
+                    if v not in Q:
+                        Q.append(v)
+
+        return dist, prev
+
+    def shortest_path(self, src, tgt):
+        """
+        Reconstitue le plus court chemin entre src et tgt.
+        """
+        return self.dijkstra(src, tgt, direction=0)[0][tgt]
+
+
+    def ancestors_in_common(self, u, v):
+        """
+        Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
+        """
+        dist_u, _ = self.dijkstra(u, direction=-1)  
+        dist_v, _ = self.dijkstra(v, direction=-1) 
+        communs = {}
+        for node in dist_u:
+            if node in dist_v:
+                communs[node] = (dist_u[node], dist_v[node])
+
+        return communs
 
     @classmethod
     def empty(cls):
@@ -970,76 +1021,3 @@ class bool_circ(open_digraph):
                 return False
         return True
     
-#############################################
-##                 Direction               ##
-#############################################
-def dijkstra(self, src, tgt, direction=None):
-    """
-    Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
-
-    """
-    Q = [src]
-    dist = {src: 0}
-    prev = {}
-
-    while Q:
-        u = None
-        min_dist = None
-        for node in Q:
-            if min_dist is None or dist[node] < min_dist:
-                min_dist = dist[node]
-                u = node
-
-
-        if tgt is not None and u == tgt:
-            return dist, prev
-        if direction == -1:
-            neighbours = self.get_node_by_id(u).get_parents().keys()
-        elif direction == 1:
-            neighbours = self.get_node_by_id(u).get_children().keys()
-        else:
-            neighbours = list(self.get_node_by_id(u).get_parents().keys()) + list(self.get_node_by_id(u).get_children().keys())
-
-        for v in neighbours:
-            w = 1 
-            new_dist = dist[u] + w
-
-            if v not in dist or new_dist < dist[v]:
-                dist[v] = new_dist
-                prev[v] = u
-                if v not in Q:
-                    Q.append(v)
-
-    return dist, prev
-
-def shortest_path(self, src, tgt, direction=None):
-    """
-    Reconstitue le plus court chemin entre src et tgt.
-    """
-    dist, prev = self.dijkstra(src, tgt, direction)
-    
-    if tgt not in dist :
-        raise ValueError("Il n'existe pas de chemin entre les sommets.")
-    
-    path = []
-    current = tgt
-    while current is not None:
-        path.append(current)
-        current = prev[current] # ou prev.get(current)
-    path.reverse()
-    
-    return path
-
-
-def communs(self, u, v):
-    """
-    Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
-    """
-    dist_u, _ = self.dijkstra(u, direction=-1)  
-    dist_v, _ = self.dijkstra(v, direction=-1) 
-    communs = {}
-    for node in dist_u:
-        if node in dist_v:
-            communs[node] = (dist_u[node], dist_v[node])
-
-    return communs
