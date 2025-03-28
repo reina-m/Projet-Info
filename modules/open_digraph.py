@@ -682,6 +682,69 @@ class open_digraph:  # for open directed graph
         abs_png = os.path.abspath(png_path)
         webbrowser.open(f"file://{abs_png}")
         os.remove(dot_path)
+    
+    #############################################
+    ##                 Direction               ##
+    #############################################
+    def dijkstra(self, src, tgt, direction=None):
+        """
+        Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
+
+        """
+        Q = [src]
+        dist = {src: 0}
+        prev = {}
+
+        while Q:
+            u = None
+            min_dist = None
+            for node in Q:
+                if min_dist is None or dist[node] < min_dist:
+                    min_dist = dist[node]
+                    u = node
+
+
+            if tgt is not None and u == tgt:
+                return dist, prev
+            Q.remove(u)
+            if direction == -1:
+                neighbours = self.get_node_by_id(u).get_parents().keys()
+            elif direction == 1:
+                neighbours = self.get_node_by_id(u).get_children().keys()
+            else: # bidirection
+                neighbours = list(self.get_node_by_id(u).get_parents().keys()) + list(self.get_node_by_id(u).get_children().keys())
+
+            for v in neighbours:
+                w = 1
+                new_dist = dist[u] + w
+
+                if v not in dist or new_dist < dist[v]:
+                    dist[v] = new_dist
+                    prev[v] = u
+                    if v not in Q:
+                        Q.append(v)
+
+        return dist, prev
+
+    def shortest_path(self, src, tgt):
+        """
+        Reconstitue le plus court chemin entre src et tgt.
+        """
+        return self.dijkstra(src, tgt, direction=0)[0][tgt]
+
+
+    def communs(self, u, v):
+        """
+        Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
+        """
+        dist_u, _ = self.dijkstra(u, direction=-1)  
+        dist_v, _ = self.dijkstra(v, direction=-1) 
+        communs = {}
+        for node in dist_u:
+            if node in dist_v:
+                communs[node] = (dist_u[node], dist_v[node])
+
+        return communs
 
     @classmethod
     def empty(cls):
@@ -969,77 +1032,3 @@ class bool_circ(open_digraph):
             else:
                 return False
         return True
-    
-#############################################
-##                 Direction               ##
-#############################################
-def dijkstra(self, src, tgt, direction=None):
-    """
-    Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
-
-    """
-    Q = [src]
-    dist = {src: 0}
-    prev = {}
-
-    while Q:
-        u = None
-        min_dist = None
-        for node in Q:
-            if min_dist is None or dist[node] < min_dist:
-                min_dist = dist[node]
-                u = node
-
-
-        if tgt is not None and u == tgt:
-            return dist, prev
-        if direction == -1:
-            neighbours = self.get_node_by_id(u).get_parents().keys()
-        elif direction == 1:
-            neighbours = self.get_node_by_id(u).get_children().keys()
-        else:
-            neighbours = list(self.get_node_by_id(u).get_parents().keys()) + list(self.get_node_by_id(u).get_children().keys())
-
-        for v in neighbours:
-            w = 1 
-            new_dist = dist[u] + w
-
-            if v not in dist or new_dist < dist[v]:
-                dist[v] = new_dist
-                prev[v] = u
-                if v not in Q:
-                    Q.append(v)
-
-    return dist, prev
-
-def shortest_path(self, src, tgt, direction=None):
-    """
-    Reconstitue le plus court chemin entre src et tgt.
-    """
-    dist, prev = self.dijkstra(src, tgt, direction)
-    
-    if tgt not in dist :
-        raise ValueError("Il n'existe pas de chemin entre les sommets.")
-    
-    path = []
-    current = tgt
-    while current is not None:
-        path.append(current)
-        current = prev[current] # ou prev.get(current)
-    path.reverse()
-    
-    return path
-
-
-def communs(self, u, v):
-    """
-    Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
-    """
-    dist_u, _ = self.dijkstra(u, direction=-1)  
-    dist_v, _ = self.dijkstra(v, direction=-1) 
-    communs = {}
-    for node in dist_u:
-        if node in dist_v:
-            communs[node] = (dist_u[node], dist_v[node])
-
-    return communs
