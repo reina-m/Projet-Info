@@ -468,8 +468,6 @@ class open_digraph:  # for open directed graph
         new_graph.iparallel(g2)
         return new_graph
 
-
-    def icompose(self, g):
     def icompose(self, g):
         """
         @param : f an open_digraph, the graph that will be composed with self in sequence
@@ -494,24 +492,6 @@ class open_digraph:  # for open directed graph
         self.set_inputs(gi)
         return self
 
-        # check #outs == #ins
-        if len(g.get_output_ids()) != len(self.get_input_ids()):
-            raise ValueError("Mismatch in out/in counts")
-
-        # parallel-merge g into self, get shift
-        s = self.iparallel(g)
-
-        # shifted IDs of g's outs/ins
-        go = [x + s for x in g.get_output_ids()]
-        gi = [x + s for x in g.get_input_ids()]
-
-        # wire g's outs -> self's current ins
-        for si, fo in zip(self.get_input_ids(), go):
-            self.add_edge(fo, si)
-
-        # final inputs become g's (shifted)
-        self.set_inputs(gi)
-        return self
 
 
     @classmethod
@@ -599,6 +579,37 @@ class open_digraph:  # for open directed graph
 
         return a
 
+    def topological_sort(self):
+        if self.is_cyclic():
+            raise ValueError("Le graphe est cyclique")
+
+        graph_copy = self.copy()
+        l = [] 
+
+        while graph_copy.nodes:
+            co_feuilles = [node_id for node_id, node in graph_copy.nodes.items() if not node.parents]
+            if not co_feuilles:  
+                raise ValueError("Le graphe devrait être acyclique mais nope.")
+            l.append(co_feuilles)
+            for node_id in co_feuilles:
+                graph_copy.remove_node_by_id(node_id)
+
+        return l
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     def save_as_dot_file(self, path, verbose=False):
 
         assert path.endswith(".dot"), "path must end with .dot"
