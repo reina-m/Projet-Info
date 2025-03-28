@@ -441,5 +441,76 @@ class TestShiftIndices(unittest.TestCase):
         self.assertEqual(g.get_node_by_id(7).get_parents(), {6: 1})
 
 
+
+
+
+class TestOpenDigraphComposition(unittest.TestCase):
+
+    def setUp(self):
+        # Create simple graphs for testing
+        self.g1 = open_digraph.empty()
+        n1 = self.g1.add_node(label="A")
+        n2 = self.g1.add_node(label="B")
+        self.g1.add_edge(n1, n2)
+        self.g1.add_input_id(n1)
+        self.g1.add_output_id(n2)
+
+        self.g2 = open_digraph.empty()
+        n3 = self.g2.add_node(label="C")
+        n4 = self.g2.add_node(label="D")
+        self.g2.add_edge(n3, n4)
+        self.g2.add_input_id(n3)
+        self.g2.add_output_id(n4)
+
+    
+
+    def test_identity(self):
+        n = 3
+        id_graph = open_digraph.identity(n)
+        self.assertEqual(len(id_graph.get_input_ids()), n)
+        self.assertEqual(len(id_graph.get_output_ids()), n)
+        self.assertEqual(len(id_graph.nodes), 2 * n)
+        for input_id in id_graph.get_input_ids():
+            node = id_graph.get_node_by_id(input_id)
+            children = node.get_children()
+            self.assertEqual(len(children), 1)
+            output_id = list(children.keys())[0]
+            self.assertIn(output_id, id_graph.get_output_ids())
+    def test_parallel_basic(self):
+        g_parallel = open_digraph.parallel(self.g1, self.g2)
+        self.assertEqual(len(g_parallel.nodes), len(self.g1.nodes) + len(self.g2.nodes))
+        self.assertEqual(len(g_parallel.get_input_ids()), len(self.g1.get_input_ids()) + len(self.g2.get_input_ids()))
+        self.assertEqual(len(g_parallel.get_output_ids()), len(self.g1.get_output_ids()) + len(self.g2.get_output_ids()))
+ 
+        self.assertEqual(len(self.g1.nodes), 2)
+        self.assertEqual(len(self.g2.nodes), 2)
+
+    def test_icompose_valid(self):
+        id_graph = open_digraph.identity(len(self.g1.get_input_ids()))    
+        original_node_count = len(self.g1.nodes)
+        self.g1.icompose(id_graph)
+        self.assertEqual(len(self.g1.nodes), original_node_count + len(id_graph.nodes))
+        self.assertEqual(len(self.g1.get_input_ids()), len(id_graph.get_input_ids()))
+        
+    
+    def test_icompose_invalid(self):
+        bad_graph = open_digraph.empty()
+        bad_graph.add_input_id(bad_graph.add_node())
+        bad_graph.add_output_id(bad_graph.add_node())
+        bad_graph.add_output_id(bad_graph.add_node())  
+        
+        with self.assertRaises(ValueError):
+            self.g1.icompose(bad_graph)
+
+    def test_compose_valid(self):
+        id_graph = open_digraph.identity(len(self.g1.get_input_ids()))
+        composed = open_digraph.compose(self.g1, id_graph)
+        self.assertEqual(len(composed.nodes), len(self.g1.nodes) + len(id_graph.nodes))
+        self.assertEqual(len(self.g1.nodes), 2)
+        self.assertEqual(len(id_graph.nodes), 2 * len(self.g1.get_input_ids()))
+
+    
+
+
 if __name__ == '__main__': # the following code is called only when
     unittest.main()        # precisely this file is rung
