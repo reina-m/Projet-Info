@@ -788,8 +788,8 @@ class open_digraph:  # for open directed graph
         """
         Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
         """
-        dist_u, _ = self.dijkstra(u, direction=-1)  
-        dist_v, _ = self.dijkstra(v, direction=-1) 
+        dist_u, _ = self.dijkstra(u, None, direction=-1)  
+        dist_v, _ = self.dijkstra(v, None, direction=-1) 
         communs = {}
         for node in dist_u:
             if node in dist_v:
@@ -823,7 +823,7 @@ class open_digraph:  # for open directed graph
         l the topological sort of the graph (optional)
         returns : int , the depth of the node in the graph
         '''
-        if node not in self.get_nodes_id():
+        if node_id not in self.get_nodes_id():
             raise ValueError("node_depth : node not in graph")
         if l is None:
             l = self.topological_sort()
@@ -837,30 +837,20 @@ class open_digraph:  # for open directed graph
         '''
         return len(self.topological_sort)
     
-    def longest_path_from_to(self, u, v):
+    def longest_path(self, u, v):
         '''
-        @param: u (start node id), v (target node id)
-        @return: (int) longest distance, (list) path from u to v
+        returns longest path from u to v in a DAG
         '''
         l = self.topological_sort()
-        k = self.node_depth(self.get_node_by_id(u), l=l)
-        
-        d = {u: 0}   # distances
-        p = {}       # prev map
+        d = {u: 0}  # longest distance from u
+        p = {}      # prev map
 
-        for lvl in l[k+1:]:
+        for lvl in l:
             for w in lvl:
-                best, b_d = None, -1
                 for par in self.get_node_by_id(w).get_parents():
-                    if par in d and d[par] > b_d:
-                        best, b_d = par, d[par]
-                if best is not None:
-                    d[w] = b_d + 1
-                    p[w] = best
-                if w == v:
-                    break
-            if v in d:
-                break
+                    if par in d and d[par] + 1 > d.get(w, -1):
+                        d[w] = d[par] + 1
+                        p[w] = par
 
         if v not in d:
             return -1, []
@@ -871,7 +861,6 @@ class open_digraph:  # for open directed graph
             path.append(p[path[-1]])
         path.reverse()
         return d[v], path
-
 
     @classmethod
     def empty(cls):
