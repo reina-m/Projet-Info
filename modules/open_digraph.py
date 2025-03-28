@@ -786,11 +786,15 @@ class open_digraph:  # for open directed graph
 
     def ancestors_in_common(self, u, v):
         """
-        Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
+        Retourne un dictionnaire des ancêtres communs (stricts) de u et v avec leurs distances respectives.
         """
         dist_u, _ = self.dijkstra(u, None, direction=-1)  
         dist_v, _ = self.dijkstra(v, None, direction=-1) 
+        
+        dist_u.pop(u, None)
+        dist_v.pop(v, None)
         communs = {}
+        
         for node in dist_u:
             if node in dist_v:
                 communs[node] = (dist_u[node], dist_v[node])
