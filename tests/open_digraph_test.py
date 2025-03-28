@@ -509,8 +509,61 @@ class TestOpenDigraphComposition(unittest.TestCase):
         self.assertEqual(len(self.g1.nodes), 2)
         self.assertEqual(len(id_graph.nodes), 2 * len(self.g1.get_input_ids()))
 
+class TopologicalSortTest(unittest.TestCase):
+    def test_topological_sort_acyclic(self):
+        n0 = node(0, 'a', {}, {1:1})
+        n1 = node(1, 'b', {0:1}, {2:1})
+        n2 = node(2, 'c', {1:1}, {})
+        g = open_digraph([0], [2], [n0, n1, n2])
+        
+        layers = g.topological_sort()
+        self.assertEqual(layers, [[0], [1], [2]])
+        
+    def test_topological_sort_multiple_paths(self):
+        n0 = node(0, 'a', {}, {1:1, 2:1})
+        n1 = node(1, 'b', {0:1}, {3:1})
+        n2 = node(2, 'c', {0:1}, {3:1})
+        n3 = node(3, 'd', {1:1, 2:1}, {})
+        g = open_digraph([0], [3], [n0, n1, n2, n3])
+        
+        layers = g.topological_sort()
+        self.assertEqual(len(layers), 3)
+        self.assertEqual(layers[0], [0])
+        self.assertEqual(set(layers[1]), {1, 2})
+        self.assertEqual(layers[2], [3])
+        
+    def test_topological_sort_empty_graph(self):
+        g = open_digraph.empty()
+        layers = g.topological_sort()
+        self.assertEqual(layers, [])
+
+    def test_topological_sort_cyclic_graph(self):
+        n0 = node(0, 'a', {2:1}, {1:1})
+        n1 = node(1, 'b', {0:1}, {2:1})
+        n2 = node(2, 'c', {1:1}, {0:1})
+        g = open_digraph([0], [2], [n0, n1, n2])
+        
+        with self.assertRaises(ValueError):
+            g.topological_sort()
+            
+    def test_topological_sort_complex_acyclic(self):
+        n0 = node(0, 'a', {}, {1:1, 2:1})
+        n1 = node(1, 'b', {0:1}, {3:1})
+        n2 = node(2, 'c', {0:1}, {4:1})
+        n3 = node(3, 'd', {1:1}, {5:1})
+        n4 = node(4, 'e', {2:1}, {5:1})
+        n5 = node(5, 'f', {3:1, 4:1}, {})
+        g = open_digraph([0], [5], [n0, n1, n2, n3, n4, n5])
+        
+        layers = g.topological_sort()
+        self.assertEqual(len(layers), 4)
+        self.assertEqual(layers[0], [0])
+        self.assertEqual(set(layers[1]), {1, 2})
+        self.assertEqual(set(layers[2]), {3, 4})
+        self.assertEqual(layers[3], [5])
+      
+        
     
-
-
+    
 if __name__ == '__main__': # the following code is called only when
     unittest.main()        # precisely this file is rung
