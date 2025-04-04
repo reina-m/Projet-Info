@@ -865,6 +865,62 @@ class open_digraph:  # for open directed graph
             path.append(p[path[-1]])
         path.reverse()
         return d[v], path
+    
+
+
+    def fusion(self, id1, id2, new_label=None):
+        if id1 not in self.nodes:
+            raise ValueError("Le premier id de nœud n'existe pas dans le graphe")
+        
+        if new_label is None:
+            new_label = self.nodes[id1].label #on choisit id1 comme celui par defaut
+
+        fusion_id = self.add_node(new_label)
+
+        parents1 = self.nodes[id1].parents.copy()
+        for parent_id, mult in parents1.items():
+            parent_node.children.pop(id1)
+            parent_node.children[fusion_id] = parent_node.children.get(fusion_id, 0) + mult
+        children1 = self.nodes[id1].children.copy()
+        for child_id, mult in children1.items():
+            child_node = self.nodes[child_id]
+            child_node.parents.pop(id1)
+            child_node.parents[fusion_id] = child_node.parents.get(fusion_id, 0) + mult
+
+        if id1 in self.inputs:
+            self.inputs.remove(id1)
+            self.inputs.append(fusion_id)
+        if id1 in self.outputs:
+            self.outputs.remove(id1)
+            self.outputs.append(fusion_id)
+        self.remove_node(id1)
+
+        if id2 not in self.nodes:
+            raise ValueError("Le second id de nœud n'existe pas dans le graphe")
+        
+        parents2 = self.nodes[id2].parents.copy()
+        for parent_id, mult in parents2.items():
+            parent_node = self.nodes[parent_id]
+            parent_node.children.pop(id2)
+            parent_node.children[fusion_id] = parent_node.children.get(fusion_id, 0) + mult
+        children2 = self.nodes[id2].children.copy()
+        for child_id, mult in children2.items():
+            child_node = self.nodes[child_id]
+            child_node.parents.pop(id2)
+            child_node.parents[fusion_id] = child_node.parents.get(fusion_id, 0) + mult
+        
+        
+        if id2 in self.inputs:
+            self.inputs.remove(id2)
+            self.inputs.append(fusion_id)
+        if id2 in self.outputs:
+            self.outputs.remove(id2)
+            self.outputs.append(fusion_id)
+        self.remove_node(id2)
+        
+        return fusion_id
+
+
 
     @classmethod
     def empty(cls):
