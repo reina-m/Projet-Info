@@ -562,7 +562,66 @@ class TopologicalSortTest(unittest.TestCase):
         self.assertEqual(set(layers[2]), {3, 4})
         self.assertEqual(layers[3], [5])
       
-        
+class TestFusion(unittest.TestCase):
+    def setUp(self):
+        self.n0 = node(0, 'a', {}, {1:1})
+        self.n1 = node(1, 'b', {0:1, 3:1}, {2:1})
+        self.n2 = node(2, 'c', {1:1}, {})
+        self.n3 = node(3, 'd', {}, {1:1})
+        self.graph = open_digraph([0, 3], [2], [self.n0, self.n1, self.n2, self.n3])
+
+    def test_fusion_basic(self):
+        fusion_id = self.graph.fusion(0, 3, new_label="a+d")
+        self.assertIn(fusion_id, self.graph.nodes)
+        self.assertEqual(self.graph.nodes[fusion_id].label, "a+d")
+        self.assertEqual(self.graph.nodes[fusion_id].children, {1:2})
+        self.assertEqual(self.graph.nodes[1].parents, {fusion_id:2})
+        self.assertNotIn(0, self.graph.nodes)
+        self.assertNotIn(3, self.graph.nodes)
+        self.assertIn(fusion_id, self.graph.inputs)
+        self.assertEqual(len(self.graph.inputs), 1)
+
+    def test_fusion_with_outputs(self):
+        fusion_id = self.graph.fusion(1, 2, new_label="b+c")
+        self.assertIn(fusion_id, self.graph.outputs)
+        self.assertEqual(self.graph.nodes[0].children, {fusion_id:1})
+        self.assertEqual(self.graph.nodes[3].children, {fusion_id:1})
+        self.assertEqual(self.graph.nodes[fusion_id].parents, {0:1, 3:1})
+
+    def test_fusion_invalid_nodes(self):
+        with self.assertRaises(ValueError):
+            self.graph.fusion(0, 99)
+        with self.assertRaises(ValueError):
+            self.graph.fusion(99, 1)
+        with self.assertRaises(ValueError):
+            self.graph.fusion(0, 0)
+
+    def test_fusion_label_handling(self):
+        fusion_id1 = self.graph.fusion(0, 3)
+        self.assertEqual(self.graph.nodes[fusion_id1].label, "a")
+
+        self.setUp()
+        fusion_id2 = self.graph.fusion(0, 3, new_label="fusion")
+        self.assertEqual(self.graph.nodes[fusion_id2].label, "fusion")
+
+
+
+    def test_fusion_edge_multiplicities(self):
+        self.graph.add_edge(0, 1)
+        self.graph.add_edge(3, 1)
+        fusion_id = self.graph.fusion(0, 3)
+        self.assertEqual(self.graph.nodes[fusion_id].children, {1:4})
+        self.assertEqual(self.graph.nodes[1].parents, {fusion_id:4})
+    '''
+    def test_fusion_complex_case(self):
+        n4 = node(4, 'e', {}, {0:1})
+        self.graph.nodes[4] = n4
+        self.graph.inputs.append(4)
+        fusion_id = self.graph.fusion(0, 3)
+        self.assertEqual(self.graph.nodes[4].children, {fusion_id:1})
+        self.assertEqual(self.graph.nodes[fusion_id].parents[4], 1)
+        self.assertEqual(self.graph.nodes[fusion_id].children, {1:2})
+        self.assertEqual(self.graph.nodes[1].parents, {fusion_id:2})'''
     
     
 if __name__ == '__main__': # the following code is called only when

@@ -922,6 +922,62 @@ class open_digraph:  # for open directed graph
 
 
 
+    def fusion(self, id1, id2, new_label=None):
+        if id1 not in self.nodes:
+            raise ValueError("Le premier id de nœud n'existe pas dans le graphe")
+        if id2 not in self.nodes:
+            raise ValueError("Le second id de nœud n'existe pas dans le graphe")
+        if id1 == id2:
+            raise ValueError("Les deux nœuds sont les mêmes")
+
+        fusion_label = new_label or self.nodes[id1].label
+        fusion_id = self.add_node(fusion_label)
+
+        # Connexions du futur nœud fusionné
+        fusion_parents = {}
+        fusion_children = {}
+
+        for node_id in [id1, id2]:
+            for parent_id, mult in self.nodes[node_id].parents.items():
+                if parent_id != id1 and parent_id != id2:
+                    fusion_parents[parent_id] = fusion_parents.get(parent_id, 0) + mult
+            for child_id, mult in self.nodes[node_id].children.items():
+                if child_id != id1 and child_id != id2:
+                    fusion_children[child_id] = fusion_children.get(child_id, 0) + mult
+
+        # Rediriger les anciens parents vers fusion_id
+        for parent_id, mult in fusion_parents.items():
+            self.nodes[parent_id].children[fusion_id] = mult
+            self.nodes[parent_id].children.pop(id1, None)
+            self.nodes[parent_id].children.pop(id2, None)
+
+        # Rediriger les anciens enfants vers fusion_id
+        for child_id, mult in fusion_children.items():
+            self.nodes[child_id].parents[fusion_id] = mult
+            self.nodes[child_id].parents.pop(id1, None)
+            self.nodes[child_id].parents.pop(id2, None)
+
+        # Mise à jour du nouveau nœud fusionné
+        self.nodes[fusion_id].parents = fusion_parents
+        self.nodes[fusion_id].children = fusion_children
+
+        # Mettre à jour les inputs et outputs
+        for io_list in [self.inputs, self.outputs]:
+            modified = False
+            if id1 in io_list:
+                io_list.remove(id1)
+                modified = True
+            if id2 in io_list:
+                io_list.remove(id2)
+                modified = True
+            if modified and fusion_id not in io_list:
+                io_list.append(fusion_id)
+
+        self.remove_nodes_by_id([id1, id2])
+        return fusion_id
+
+
+
     @classmethod
     def empty(cls):
         return cls([], [], [])
