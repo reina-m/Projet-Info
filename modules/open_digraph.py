@@ -867,11 +867,6 @@ class open_digraph:  # for open directed graph
             path.append(p[path[-1]])
         path.reverse()
         return d[v], path
-    
-
-
-    
-
 
     def fusion(self, id1, id2, new_label=None):
         if id1 not in self.nodes:
@@ -1215,3 +1210,44 @@ class bool_circ(open_digraph):
                 return False
         return True
     
+    @classmethod
+    def parse_parentheses(cls, *args):
+        g = open_digraph.empty()
+        outputs = []
+
+        for s in args:
+            stack = []
+            curr = None
+            buf = ''
+
+            for c in s:
+                if c == '(':
+                    if buf.strip():
+                        nid = g.add_node(label=buf.strip())
+                        if curr is not None:
+                            g.add_edge(nid, curr)
+                        curr = nid
+                    stack.append(curr)
+                    buf = ''
+                elif c == ')':
+                    if buf.strip():
+                        nid = g.add_node(label=buf.strip())
+                        g.add_edge(nid, curr)
+                    buf = ''
+                    curr = stack.pop()
+                else:
+                    buf += c
+
+            if buf.strip():  # if anything left after loop
+                nid = g.add_node(label=buf.strip())
+                if curr is not None:
+                    g.add_edge(nid, curr)
+                curr = nid
+
+            g.add_output_node(curr)
+            outputs.append(g.get_output_ids()[-1])
+
+        g.set_outputs(outputs)
+        return bool_circ(g)
+
+        
