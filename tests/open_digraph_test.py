@@ -3,9 +3,12 @@ import os
 import random
 
 root = os.path.normpath(os.path.join(__file__, './../..'))
-sys.path.append(root) # allow us to fetch files from the project root
+sys.path.append(root) 
 import unittest
-from modules.open_digraph import *
+from modules.node import node
+from modules.open_digraph import open_digraph
+from modules.bool_circ import bool_circ
+from modules.matrix import *
 
 # classe pour le test des methodes __init__ : 
 #############################################
