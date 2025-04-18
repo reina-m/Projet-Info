@@ -3,72 +3,55 @@ import random
 
 class bool_circ(open_digraph):
     def __init__(self, graph):
-        """
-        Constructeur de la classe bool_circ qui hérite de open_digraph.
-
-        Paramètre:
-        - graph : un objet de type open_digraph.
-
-        Cette méthode initialise un circuit booléen en s'assurant que le 
-        graphe donné est bien formé selon les règles d'un circuit booléen.
-        Si le graphe donné n'est pas bien formé, il est remplacé par un graphe vide.
-        Une exception est levée si le graphe n'est toujours pas valide.
-        """
         graph.assert_is_well_formed()
         super().__init__(graph.get_input_ids().copy(), graph.get_output_ids().copy(), [])
         self.nodes = graph.id_node_map().copy()
-
         if not self.is_well_formed():
-            raise ValueError("Le graphe donné n'est pas un circuit booléen qui me plait ;).")
+            raise ValueError("Le graphe donné n'est pas un circuit booléen bien formé.")
 
     def is_well_formed(self):
-        """
-        Vérifie si le circuit booléen est bien formé.
-
-        Un circuit booléen bien formé doit respecter les critères suivants :
-        - Il ne doit pas contenir de cycles.
-        - Les nœuds de type 'copie' (label '') doivent avoir exactement un seul parent.
-        - Les portes logiques (ET '&', OU '|', XOR '^') doivent avoir exactement une sortie.
-        - Les portes NON ('~') doivent avoir exactement une entrée et une sortie.
-        - Les constantes '0' et '1' ne doivent avoir aucune sortie.
-
-        Retourne:
-        - True si le circuit booléen est valide, False sinon.
-        """
         if self.is_cyclic():
             return False
-
         for node in self.get_nodes():
-            label = node.get_label()
+            nid = node.get_id()
             indegree, outdegree = node.indegree(), node.outdegree()
-
-            if label == '':
-                if indegree != 1:
+            # Input wrapper must have indegree=0, outdegree=1
+            if nid in self.inputs:
+                if indegree != 0 or outdegree != 1:
                     return False
+                continue
+            # Output wrapper must have indegree=1, outdegree=0
+            if nid in self.outputs:
+                if indegree != 1 or outdegree != 0:
+                    return False
+                continue
+            label = node.get_label()
+            # Copy nodes: one parent, at least one child
+            if label == '':
+                if indegree != 1 or outdegree < 1:
+                    return False
+            # Logic gates: one output
             elif label in ('&', '|', '^'):
                 if outdegree != 1:
                     return False
+            # NOT gates: one input, one output
             elif label == '~':
                 if indegree != 1 or outdegree != 1:
                     return False
+            # Constants: no outputs
             elif label in ('0', '1'):
                 if outdegree != 0:
                     return False
             else:
                 return False
         return True
-    
 
     @classmethod
     def parse_parentheses(cls, *args):
         g = open_digraph.empty()
         outputs = []
-
         for s in args:
-            stack = []
-            curr = None
-            buf = ''
-
+            stack, curr, buf = [], None, ''
             for c in s:
                 if c == '(':
                     if buf.strip():
@@ -86,116 +69,163 @@ class bool_circ(open_digraph):
                     curr = stack.pop()
                 else:
                     buf += c
-
-            if buf.strip():  # if anything left after loop
+            if buf.strip():
                 nid = g.add_node(label=buf.strip())
                 if curr is not None:
                     g.add_edge(nid, curr)
                 curr = nid
-
+            # Wrap this subgraph output
             g.add_output_node(curr)
             outputs.append(g.get_output_ids()[-1])
-
+        # Wrap all roots as inputs
+        roots = [nid for nid in g.get_nodes_id() if g.get_node_by_id(nid).indegree() == 0]
+        for r in roots:
+            g.add_input_node(r)
         g.set_outputs(outputs)
-        return bool_circ(g)
-    
+        return cls(g)
+
+    @classmethod
+    def adder_n(cls, n):
+        """
+        n‑bit ripple‑carry adder:
+        inputs → A₀…Aₙ₋₁, B₀…Bₙ₋₁, Cin
+        outputs → Sum₀…Sumₙ₋₁, Cout
+        """
+        g = open_digraph.empty()
+
+        # create the n data nodes for A and B, plus Cin
+        a_nodes = [g.add_node() for _ in range(n)]
+        b_nodes = [g.add_node() for _ in range(n)]
+        cin    = g.add_node()
+
+        # wrap them as inputs
+        for a in a_nodes: g.add_input_node(a)
+        for b in b_nodes: g.add_input_node(b)
+        g.add_input_node(cin)
+
+        # ripple‑carry logic
+        ci = cin
+        sum_nodes = []
+        for ai, bi in zip(a_nodes, b_nodes):
+            # t = ai XOR bi
+            t = g.add_node(label='^', parents={ai:1, bi:1})
+            # sum bit = t XOR ci
+            si = g.add_node(label='^', parents={t:1, ci:1})
+            sum_nodes.append(si)
+
+            # carry = (ai AND bi) OR (t AND ci)
+            c1 = g.add_node(label='&', parents={ai:1, bi:1})
+            c2 = g.add_node(label='&', parents={t:1, ci:1})
+            ci = g.add_node(label='|', parents={c1:1, c2:1})
+
+        # wrap outputs: first the final carry, then the sum bits (MSB left)
+        g.add_output_node(ci)
+        for s in reversed(sum_nodes):
+            g.add_output_node(s)
+
+        return cls(g)
+
+
+    @classmethod
+    def half_adder_n(cls, n):
+        """
+        n‑bit half‑adder (Cin=0):
+        inputs → A₀…Aₙ₋₁, B₀…Bₙ₋₁
+        outputs → Sum₀…Sumₙ₋₁, Cout (overflow)
+        """
+        g = open_digraph.empty()
+
+        # data nodes for A and B
+        a_nodes = [g.add_node() for _ in range(n)]
+        b_nodes = [g.add_node() for _ in range(n)]
+
+        # wrap them as inputs
+        for a in a_nodes: g.add_input_node(a)
+        for b in b_nodes: g.add_input_node(b)
+
+        # constant‑0 starting carry
+        zero = g.add_node(label='0')  
+
+        ci = zero
+        sum_nodes = []
+        for ai, bi in zip(a_nodes, b_nodes):
+            # t = ai XOR bi
+            t = g.add_node(label='^', parents={ai:1, bi:1})
+            # sum bit = t XOR ci
+            si = g.add_node(label='^', parents={t:1, ci:1})
+            sum_nodes.append(si)
+
+            # carry = (ai AND bi) OR (t AND ci)
+            c1 = g.add_node(label='&', parents={ai:1, bi:1})
+            c2 = g.add_node(label='&', parents={t:1, ci:1})
+            ci = g.add_node(label='|', parents={c1:1, c2:1})
+
+        # wrap outputs: overflow carry, then sum bits
+        g.add_output_node(ci)
+        for s in reversed(sum_nodes):
+            g.add_output_node(s)
+
+        return cls(g)
+
+
     @classmethod
     def random(cls, n, nin, nout):
-        g = open_digraph.random_graph(n, bound=1, form="DAG")
+        """
+        Génère un bool_circ aléatoire acyclique de n nœuds,
+        exactement nin entrées et nout sorties.
+        """
+        # Regénérer tant que le nombre de racines/sinks n'est pas correct
+        while True:
+            base = open_digraph.random_graph(n, bound=1, form="DAG")
+            roots = [x.id for x in base.get_nodes() if x.indegree() == 0]
+            sinks = [x.id for x in base.get_nodes() if x.outdegree() == 0 and x.indegree() > 0]
+            if len(roots) == nin and len(sinks) == nout:
+                g = base
+                break
+        # Nettoyer éventuels wrappers existants
         g.set_inputs([])
         g.set_outputs([])
-
         ops = ['&', '|', '^']
-
-        # assign logic labels + restructure
+        # Assigner labels et gérer fan‑out
         for x in g.get_nodes():
-            d_in, d_out = x.indegree(), x.outdegree()
-
-            if d_in == 0:
+            din, dout = x.indegree(), x.outdegree()
+            if din == 0:
                 x.set_label('')
-            elif d_in == 1 and d_out == 1:
-                x.set_label(random.choice(['~'])) 
-            elif d_in == 1 and d_out > 1:
-                x.set_label('')  # copier
-            elif d_in > 1 and d_out == 1:
+            elif din == 1 and dout == 1:
+                x.set_label('~')
+            elif din == 1 and dout > 1:
+                x.set_label('')
+            elif din > 1 and dout == 1:
                 x.set_label(random.choice(ops))
-            elif d_in > 1 and d_out > 1:
-                # label it as a proper 2+‑input gate
+            elif din > 1 and dout > 1:
                 x.set_label(random.choice(ops))
-
-                # grab its current outputs
                 targets = list(x.get_children().items())
-                # keep exactly one of them on x; everything else goes to a copy node
-                first_tgt, first_m = targets[0]
                 extra = targets[1:]
-
-                # remove only the extra edges from x
-                for tgt, m in extra:
+                for tgt, _ in extra:
                     g.remove_parallel_edges(x.id, tgt)
-
-                # create the “fan‑out” copy node to handle the extras
                 cp = g.add_node('', {x.id: 1}, {})
                 for tgt, m in extra:
                     g.add_edge(cp, tgt, m)
-
-
-        # force input structure
-        cands = [x.id for x in g.get_nodes() if x.indegree()==0 and x.id not in g.inputs]
-        while len(g.inputs) < nin:
-            if cands:
-                t = cands.pop()
-            else:
-                # fallback to any zero‑indegree node that isn't already an input
-                zeros = [nid for nid in g.get_nodes_id()
-                        if g.get_node_by_id(nid).indegree()==0
-                        and nid not in g.inputs]
-                t = random.choice(zeros)
-            g.add_input_node(t)
-
-
-        # force output structure
-        cands = [x.id for x in g.get_nodes() 
-                if x.outdegree()==0 and x.indegree()>0 and x.id not in g.outputs]
-        # if there aren’t any “clean” sinks, allow any non‑input node as a source
-        if not cands:
-            cands = [x.id for x in g.get_nodes()
-                    if x.indegree()>0 and x.id not in g.outputs]
-        while len(g.outputs) < nout:
-            if cands:
-                s = cands.pop()
-            else:
-                sinks = [nid for nid in g.get_nodes_id()
-                        if g.get_node_by_id(nid).outdegree()==0
-                        and nid not in g.outputs]
-                s = random.choice(sinks)
+        # Wrap exactly those roots and sinks
+        for r in roots:
+            g.add_input_node(r)
+        for s in sinks:
             g.add_output_node(s)
-
-
-        # ensure no numeric labels were inserted by mistake
-        def _relabel_all_nodes(g: open_digraph):
-            """
-            Give every node a fresh label that is consistent with its final
-            in‑degree and out‑degree *and* with its role (input / output wrapper).
-            """
-            for nid, n in g.id_node_map().items():
-                din, dout = n.indegree(), n.outdegree()
-
+        # Relabel pour consistance
+        def _relabel_all(g):
+            for nid, node in g.id_node_map().items():
+                din, dout = node.indegree(), node.outdegree()
                 if nid in g.inputs or nid in g.outputs:
-                    n.set_label('')
-                    continue
-
-                if din == 1 and dout >= 1:
-                    n.set_label('')
+                    node.set_label('')
+                elif din == 1 and dout >= 1:
+                    node.set_label('')
                 elif din == 1 and dout == 1:
-                    n.set_label('~')
+                    node.set_label('~')
                 elif din >= 2 and dout == 1:
-                    n.set_label(random.choice(['&', '|', '^']))
+                    node.set_label(random.choice(ops))
                 elif din == 0 and dout == 0:
-                    n.set_label(random.choice(['0', '1']))
+                    node.set_label(random.choice(['0','1']))
                 else:
-                    n.set_label('')
-        _relabel_all_nodes(g)
-        c = cls(g)
-        return c
-    
-
+                    node.set_label('')
+        _relabel_all(g)
+        return cls(g)
