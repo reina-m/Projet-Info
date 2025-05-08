@@ -92,7 +92,6 @@ class open_digraph:  # for open directed graph
 
         for i, (src, tgt) in enumerate(edges):
             m = mult[i] if mult else 1  # use the provided multiplicity or default to 1
-            m = mult[i] if mult else 1  # use the provided multiplicity or default to 1
             self.add_edge(src, tgt, m)
 
     
@@ -502,7 +501,6 @@ class open_digraph:  # for open directed graph
                 # no label
                 if verbose:
                     attr_dict["label"] = f'{node_id}'
-                    attr_dict["label"] = f'{node_id}'
                 else:
                     attr_dict["label"] = ""
 
@@ -519,20 +517,12 @@ class open_digraph:  # for open directed graph
             else:
                 attr_dict["shape"] = "circle"
             
-            if node_id in self.inputs:
-                attr_dict["shape"] = "diamond"
-            elif node_id in self.outputs:
-                attr_dict["shape"] = "box"
-            else:
-                attr_dict["shape"] = "circle"
-
             # build final bracket string: e.g. [label="A", input="true"]
             if attr_dict:
                 # turn dict into a list of key="value"
                 attributes_str = ", ".join(f'{k}="{v}"' for k,v in attr_dict.items())
                 s += f'    v{node_id} [{attributes_str}];\n'
             else:
-                # if truly no attributes, just v{node_id}
                 # if truly no attributes, just v{node_id}
                 s += f'    v{node_id};\n'
 
@@ -632,72 +622,6 @@ class open_digraph:  # for open directed graph
 
         return communs
     
-    #############################################
-    ##                 Direction               ##
-    #############################################
-    def dijkstra(self, src, tgt, direction=None):
-        """
-        Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
-
-        """
-        Q = [src]
-        dist = {src: 0}
-        prev = {}
-
-        while Q:
-            u = None
-            min_dist = None
-            for node in Q:
-                if min_dist is None or dist[node] < min_dist:
-                    min_dist = dist[node]
-                    u = node
-
-
-            if tgt is not None and u == tgt:
-                return dist, prev
-            Q.remove(u)
-            if direction == -1:
-                neighbours = self.get_node_by_id(u).get_parents().keys()
-            elif direction == 1:
-                neighbours = self.get_node_by_id(u).get_children().keys()
-            else: # bidirection
-                neighbours = list(self.get_node_by_id(u).get_parents().keys()) + list(self.get_node_by_id(u).get_children().keys())
-
-            for v in neighbours:
-                w = 1
-                new_dist = dist[u] + w
-
-                if v not in dist or new_dist < dist[v]:
-                    dist[v] = new_dist
-                    prev[v] = u
-                    if v not in Q:
-                        Q.append(v)
-
-        return dist, prev
-
-    def shortest_path(self, src, tgt):
-        """
-        Reconstitue le plus court chemin entre src et tgt.
-        """
-        return self.dijkstra(src, tgt, direction=0)[0][tgt]
-
-
-    def ancestors_in_common(self, u, v):
-        """
-        Retourne un dictionnaire des ancêtres communs (stricts) de u et v avec leurs distances respectives.
-        """
-        dist_u, _ = self.dijkstra(u, None, direction=-1)  
-        dist_v, _ = self.dijkstra(v, None, direction=-1) 
-        
-        dist_u.pop(u, None)
-        dist_v.pop(v, None)
-        communs = {}
-        
-        for node in dist_u:
-            if node in dist_v:
-                communs[node] = (dist_u[node], dist_v[node])
-
-        return communs
     
     def topological_sort(self):
         '''
@@ -737,7 +661,7 @@ class open_digraph:  # for open directed graph
         '''
         returns the depth of the graph (must be acyclic)
         '''
-        return len(self.topological_sort)
+        return len(self.topological_sort())
     
     def longest_path(self, u, v):
         '''
@@ -767,6 +691,10 @@ class open_digraph:  # for open directed graph
 
 
     def fusion(self, id1, id2, new_label=None):
+        """
+        Fusionne deux nœuds en un nouveau nœud qui hérite de toutes les connexions.
+        Gère correctement les connexions directes entre les nœuds à fusionner.
+        """
         if id1 not in self.nodes:
             raise ValueError("Le premier id de nœud n'existe pas dans le graphe")
         if id2 not in self.nodes:
@@ -781,6 +709,7 @@ class open_digraph:  # for open directed graph
         fusion_parents = {}
         fusion_children = {}
 
+        # Récupérer les connexions des deux nœuds à fusionner
         for node_id in [id1, id2]:
             for parent_id, mult in self.nodes[node_id].parents.items():
                 if parent_id != id1 and parent_id != id2:
@@ -789,12 +718,13 @@ class open_digraph:  # for open directed graph
                 if child_id != id1 and child_id != id2:
                     fusion_children[child_id] = fusion_children.get(child_id, 0) + mult
 
+        # Rediriger les parents vers fusion_id
         for parent_id, mult in fusion_parents.items():
             self.nodes[parent_id].children[fusion_id] = mult
             self.nodes[parent_id].children.pop(id1, None)
             self.nodes[parent_id].children.pop(id2, None)
 
-        # Rediriger les anciens enfants vers fusion_id
+        # Rediriger les enfants vers fusion_id
         for child_id, mult in fusion_children.items():
             self.nodes[child_id].parents[fusion_id] = mult
             self.nodes[child_id].parents.pop(id1, None)
@@ -803,6 +733,9 @@ class open_digraph:  # for open directed graph
         # Mise à jour du nouveau nœud fusionné
         self.nodes[fusion_id].parents = fusion_parents
         self.nodes[fusion_id].children = fusion_children
+
+        # Gérer les boucles éventuelles (connexions entre id1 et id2)
+        # Un nœud pourrait être parent et enfant de l'autre
 
         # Mettre à jour les inputs et outputs
         for tmp_list in [self.inputs, self.outputs]:
