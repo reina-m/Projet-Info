@@ -1,7 +1,7 @@
 from .open_digraph import open_digraph
 import random
 from collections import deque
-
+import copy
 
 class bool_circ(open_digraph):
     """
@@ -1063,3 +1063,10 @@ class bool_circ(open_digraph):
             graph.add_edge(o2,join)
             graph.set_outputs([o for o in graph.get_output_ids() if o not in (o1,o2)]+[join])
         return graph
+
+    def copy(self):
+        new_graph = bool_circ()
+        new_graph.inputs = self.get_input_ids().copy()
+        new_graph.outputs = self.get_output_ids().copy() 
+        new_graph.nodes = copy.deepcopy(self.nodes)
+        return new_graph
