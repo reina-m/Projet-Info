@@ -45,8 +45,8 @@ class OpenDigraphNodeMixin:
         n = self.get_node_by_id(node_id)
         edges = [(p, node_id) for p in n.get_parents()] + [(node_id, c) for c in n.get_children()]
         
-        self.remove_several_parallel_edges(edges)  # remove all edges linked to node
-        self.nodes.pop(node_id)  # remove node itself
+        self.remove_several_parallel_edges(edges)  
+        self.nodes.pop(node_id)  
 
     def remove_nodes_by_id(self, nodes):
         """removes multiple nodes and their edges"""

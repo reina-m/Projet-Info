@@ -49,7 +49,7 @@ class OpenDigraphCompositionMixin:
             self.add_input_id(input)
         for output in new_graph.get_output_ids():
             self.add_output_id(output)
-        return shift # optionnel, facilite la fonction icompose
+        return shift 
 
     @classmethod
     def parallel(cls, g1, g2):
@@ -81,22 +81,17 @@ class OpenDigraphCompositionMixin:
         @param : f an open_digraph, the graph that will be composed with self in sequence
         the current graph will contain f followed by self
         """
-        # check #outs == #ins
         if len(g.get_output_ids()) != len(self.get_input_ids()):
             raise ValueError("Mismatch in out/in counts")
 
-        # parallel-merge g into self, get shift
         s = self.iparallel(g)
 
-        # shifted IDs of g's outs/ins
         go = [x + s for x in g.get_output_ids()]
         gi = [x + s for x in g.get_input_ids()]
 
-        # wire g's outs -> self's current ins
         for si, fo in zip(self.get_input_ids(), go):
             self.add_edge(fo, si)
 
-        # final inputs become g's (shifted)
         self.set_inputs(gi)
         return self
 

@@ -23,7 +23,6 @@ class InitTest(unittest.TestCase):
         self.assertIsNot(n0, n0.copy())
 
     def test_init_open_digraph(self):
-        # a -> b -> c
         n0 = node(0, 'a', {}, {1: 1})
         n1 = node(1, 'b', {0:1}, {2:1})
         n2 = node(2, 'c', {1: 1}, {})
@@ -33,7 +32,6 @@ class InitTest(unittest.TestCase):
         self.assertEqual(g.outputs, [2])
         self.assertEqual(len(g.nodes), 3)
 
-        # no need to test the rest as __init__ nodes has been tested
         self.assertEqual(g.nodes[0].id, 0)
         self.assertEqual(g.nodes[1].id, 1)
         self.assertEqual(g.nodes[2].id, 2)
@@ -329,7 +327,6 @@ class Test_random(unittest.TestCase):
     def test_random_graph_DAG(self):
         g = open_digraph.random_graph(n=5, bound=2, form="DAG")
         mat = g.adjacency_matrix()
-        # Check triangular structure (i < j → mat[i][j] may be >0, j < i → 0)
         for i in range(len(mat)):
             for j in range(i):
                 self.assertEqual(mat[i][j], 0)
@@ -689,5 +686,5 @@ class TestHammings(unittest.TestCase):
 
 
 
-if __name__ == '__main__': # the following code is called only when
-    unittest.main()        # precisely this file is rung
+if __name__ == '__main__': 
+    unittest.main()        

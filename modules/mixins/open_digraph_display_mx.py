@@ -11,12 +11,12 @@ class OpenDigraphDisplayMixin:
             f.write("digraph {\n")
             if layout_hints:
                 f.write("  // Layout settings\n")
-                f.write("  rankdir=TB;\n")  # Top to bottom
-                f.write("  splines=ortho;\n")  # Orthogonal edges
+                f.write("  rankdir=TB;\n")  
+                f.write("  splines=ortho;\n")  
                 f.write("  nodesep=0.5;\n")
                 f.write("  ranksep=0.5;\n\n")
             
-            # Group inputs
+           
             f.write("  // Input nodes\n")
             f.write("  subgraph cluster_inputs {\n")
             f.write("    label=\"Inputs\";\n")
@@ -29,7 +29,7 @@ class OpenDigraphDisplayMixin:
                 f.write(f"    {nid} [label=\"{label}\"];\n")
             f.write("  }\n\n")
 
-            # Write other nodes
+           
             f.write("  // Logic gates\n")
             for node in self.get_nodes():
                 if node.id not in self.inputs and node.id not in self.outputs:
@@ -39,7 +39,6 @@ class OpenDigraphDisplayMixin:
                     shape = "circle" if label in ["&", "|", "^"] else "box"
                     f.write(f"  {node.id} [label=\"{label}\",shape={shape}];\n")
 
-            # Group outputs
             f.write("\n  // Output nodes\n")
             f.write("  subgraph cluster_outputs {\n")
             f.write("    label=\"Outputs\";\n")
@@ -52,7 +51,6 @@ class OpenDigraphDisplayMixin:
                 f.write(f"    {nid} [label=\"{label}\"];\n")
             f.write("  }\n\n")
 
-            # Write edges
             f.write("  // Edges\n")
             for node in self.get_nodes():
                 for child, mult in node.get_children().items():

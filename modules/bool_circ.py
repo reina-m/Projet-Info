@@ -532,7 +532,6 @@ class bool_circ(open_digraph):
                 else:
                     q.append(child)
 
-        # remove the old gate
         self.remove_node_by_id(nid)
         return True
 
@@ -557,7 +556,6 @@ class bool_circ(open_digraph):
         if node.get_label() != '~':
             return False
 
-        # find any constant child
         consts = [c for c in node.get_children()
                   if self.get_node_by_id(c).get_label() in ('0','1')]
         if not consts:
@@ -566,12 +564,10 @@ class bool_circ(open_digraph):
         cbit = self.get_node_by_id(c_id).get_label()
         bit = '1' if cbit == '0' else '0'
 
-        # new constant node
         rep = self.add_node(label=bit)
         for p in list(node.get_parents()):
             self.add_edge(p, rep)
 
-        # catch all wrappers
         q, seen = deque(self.get_node_by_id(nid).get_children()), set()
         while q:
             cur = q.popleft()
@@ -585,7 +581,6 @@ class bool_circ(open_digraph):
                 for gc in self.get_node_by_id(cur).get_children():
                     q.append(gc)
 
-        # remove the NOT gate (leave its old constant for erasure later)
         self.remove_node_by_id(nid)
         return True
 
@@ -613,7 +608,6 @@ class bool_circ(open_digraph):
         if node.get_parents():
             vals = [self.get_node_by_id(p).label for p in node.get_parents()]
         else:
-            # test wiring fallback
             vals = [self.get_node_by_id(c).label
                     for c in node.get_children()
                     if self.get_node_by_id(c).label in ('0','1')]
@@ -688,7 +682,6 @@ class bool_circ(open_digraph):
         if node.get_label()!='^': return False
         for p,m in list(node.parents.items()):
             if m>1:
-                # remove all, re-add if odd
                 self.remove_several_parallel_edges([(p,nid)])
                 if m%2==1: self.add_edge(p,nid,1)
                 return True
@@ -855,7 +848,6 @@ class bool_circ(open_digraph):
         raises:
             ValueError: if len(inputs) != number of circuit inputs
         """
-        # shortcut
         if getattr(self, "_is_hamming_decoder", False):
             r = inputs[:]
             s0 = r[0] ^ r[2] ^ r[4] ^ r[6]
@@ -869,14 +861,12 @@ class bool_circ(open_digraph):
         if len(inputs) != len(self.inputs):
             raise ValueError("Incorrect input size")
 
-        # assign each input‐wrapper its given bit
         for inp, val in zip(self.inputs, inputs):
             self.get_node_by_id(inp).set_label(str(val))
 
         nodes = list(self.get_nodes_id())
         preds = {nid: set(self.get_node_by_id(nid).get_parents().keys())
                  for nid in nodes}
-        # force the input wrappers to be sources
         for inp in self.inputs:
             preds[inp].clear()
 
@@ -897,7 +887,6 @@ class bool_circ(open_digraph):
                 if indegree[v] == 0:
                     q.append(v)
 
-        # simulate each node in that order
         vals = {}
         for nid in order:
             node = self.get_node_by_id(nid)

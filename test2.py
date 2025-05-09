@@ -6,7 +6,7 @@ def visualize_half_adder(n=4):
     
     ha = bool_circ.half_adder_n(n)
     
-    inputs = [0,1,0,1, 0,0,1,1]  # 5 (0101) + 3 (0011)
+    inputs = [0,1,0,1, 0,0,1,1] 
     
     ha.save_as_dot_file("images/adder_structure.dot", verbose=False)
     

@@ -19,7 +19,7 @@ class OpenDigraphValidationMixin:
         q = [node_id for node_id, deg in in_degree.items() if deg == 0]
 
         while q:
-           node_id = q.pop(0)  #
+           node_id = q.pop(0)  
            for child_id in copy.nodes[node_id].get_children():
                in_degree[child_id] -= 1
                if in_degree[child_id] == 0:
@@ -41,7 +41,6 @@ class OpenDigraphValidationMixin:
         returns:
             bool: True if well-formed, False otherwise
         """
-        # check input nodes
         for i in self.get_input_ids():
             if i not in self.nodes:
                 return False
@@ -49,7 +48,6 @@ class OpenDigraphValidationMixin:
             if node.get_parents() or len(node.get_children()) != 1:
                 return False
 
-        # check output nodes
         for o in self.get_output_ids():
             if o not in self.nodes:
                 return False
@@ -57,9 +55,7 @@ class OpenDigraphValidationMixin:
             if node.get_children() or len(node.get_parents()) != 1:
                 return False
 
-        # check edge consistency
         for node in self.get_nodes():
-            # check parent edges
             for p_id, mult in node.get_parents().items():
                 if p_id not in self.nodes:
                     return False
@@ -68,7 +64,6 @@ class OpenDigraphValidationMixin:
                    parent.get_children()[node.id] != mult:
                     return False
 
-            # check child edges
             for c_id, mult in node.get_children().items():
                 if c_id not in self.nodes:
                     return False
@@ -86,21 +81,18 @@ class OpenDigraphValidationMixin:
         raises:
             AssertionError: with description of why graph is invalid
         """
-        # check input nodes
         for i in self.get_input_ids():
             assert i in self.nodes, f"Input node {i} does not exist"
             node = self.get_node_by_id(i)
             assert not node.get_parents() and len(node.get_children()) == 1, \
                    f"Input node {i} has wrong degree"
 
-        # check output nodes
         for o in self.get_output_ids():
             assert o in self.nodes, f"Output node {o} does not exist"
             node = self.get_node_by_id(o)
             assert not node.get_children() and len(node.get_parents()) == 1, \
                    f"Output node {o} has wrong degree"
 
-        # check edge consistency
         for node in self.get_nodes():
             for p_id, mult in node.get_parents().items():
                 assert p_id in self.nodes, \

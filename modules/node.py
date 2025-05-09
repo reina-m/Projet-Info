@@ -21,7 +21,6 @@ class node:
     def copy(self):
         return node(self.get_id(), self.get_label(), self.get_parents().copy(), self.get_children().copy())
     
-    # getters
     def get_id(self):
         return self.id 
     def get_label(self):
@@ -31,7 +30,6 @@ class node:
     def get_children(self):
         return self.children
     
-    # setters
     def set_id(self, id):
         self.id = id
     def set_label(self, label):

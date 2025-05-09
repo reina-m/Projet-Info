@@ -7,12 +7,12 @@ class OpenDigraphAlgorithmsMixin:
             - int: number of connected components.
             - dict: Mapping of node id to its component index.
         """
-        v = set()  # visited nodes
-        c = {}  # node-to-component map
-        idx = 0  # component index
+        v = set() 
+        c = {} 
+        idx = 0  
 
         def dfs(n, i):
-            s = [n]  # stack for DFS
+            s = [n]  
             while s:
                 x = s.pop()
                 if x not in v:
@@ -33,10 +33,10 @@ class OpenDigraphAlgorithmsMixin:
         returns a list of subgraphs, each corresponding to a connected component.
         """
         n, m = self.connected_components()
-        sg = [[] for _ in range(n)] #subgraph
+        sg = [[] for _ in range(n)] 
         
         for x, i in m.items():
-            sg[i].append(self.nodes[x]) # add node to its respective component list
+            sg[i].append(self.nodes[x])
         
         return [self.__class__(
             [inp for inp in self.get_input_ids() if m[inp] == i],
@@ -78,7 +78,7 @@ class OpenDigraphAlgorithmsMixin:
                 neighbours = self.get_node_by_id(u).get_parents().keys()
             elif direction == 1:
                 neighbours = self.get_node_by_id(u).get_children().keys()
-            else:  # bidirectional
+            else: 
                 neighbours = list(self.get_node_by_id(u).get_parents().keys()) + \
                            list(self.get_node_by_id(u).get_children().keys())
 
@@ -165,7 +165,7 @@ class OpenDigraphAlgorithmsMixin:
             l = self.topological_sort()
         for i, lvl in enumerate(l):
             if node_id in lvl:
-                return i+1 # no such depth as 0
+                return i+1 
     
     def fusion(self, id1, id2, new_label=None):
         """
@@ -246,8 +246,8 @@ class OpenDigraphAlgorithmsMixin:
         returns longest path from u to v in a DAG
         '''
         l = self.topological_sort()
-        d = {u: 0}  # longest distance from u
-        p = {}      # prev map
+        d = {u: 0}  
+        p = {}      
 
         for lvl in l:
             for w in lvl:
@@ -259,7 +259,6 @@ class OpenDigraphAlgorithmsMixin:
         if v not in d:
             return -1, []
 
-        # reconstruct path
         path = [v]
         while path[-1] != u:
             path.append(p[path[-1]])

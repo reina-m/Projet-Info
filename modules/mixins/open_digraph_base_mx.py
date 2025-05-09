@@ -27,30 +27,22 @@ class OpenDigraphBaseMixin:
     def __repr__(self):
         return self.__str__()
 
-    # getters 
-    # returns list of input ids
     def get_input_ids(self):
         return self.inputs
-    # returns list of output ids
     def get_output_ids(self):
         return self.outputs
-    # returns <int, node> dict
+
     def id_node_map(self): 
         return self.nodes 
-    # returns node list
     def get_nodes(self):
         return list(self.nodes.values())
-    # returns node_ids list
     def get_nodes_id(self):
         return list(self.nodes.keys())
-    # returns the node with given id
     def get_node_by_id(self, id): 
         return self.nodes[id]
-    # returns list of nodes with given ids
     def get_nodes_by_ids(self, ids):
         return [self.nodes[id] for id in ids if id in self.nodes]
 
-    # setters
     def set_inputs(self, inputs):
         self.inputs = inputs
     def set_outputs(self, outputs):
