@@ -307,7 +307,64 @@ class TestGraph(unittest.TestCase):
         for i in range(n):
             for j in range(n):
                 self.assertEqual(matrix[i][j], matrix[j][i])
-        
+
+
+
+
+    
+class Test_random(unittest.TestCase):
+    def test_random_graph_loop_free(self):
+        g = open_digraph.random_graph(n=5, bound=3, form="loop-free")
+        mat = g.adjacency_matrix()
+        for i in range(len(mat)):
+            self.assertEqual(mat[i][i], 0)
+
+    def test_random_graph_undirected(self):
+        g = open_digraph.random_graph(n=5, bound=3, form="undirected")
+        mat = g.adjacency_matrix()
+        for i in range(len(mat)):
+            for j in range(len(mat)):
+                self.assertEqual(mat[i][j], mat[j][i])
+
+    def test_random_graph_DAG(self):
+        g = open_digraph.random_graph(n=5, bound=2, form="DAG")
+        mat = g.adjacency_matrix()
+        # Check triangular structure (i < j → mat[i][j] may be >0, j < i → 0)
+        for i in range(len(mat)):
+            for j in range(i):
+                self.assertEqual(mat[i][j], 0)
+
+    def test_random_graph_oriented(self):
+        g = open_digraph.random_graph(n=5, bound=1, form="oriented")
+        mat = g.adjacency_matrix()
+        for i in range(len(mat)):
+            for j in range(len(mat)):
+                if mat[i][j] > 0:
+                    self.assertEqual(mat[j][i], 0)
+
+class TestDijkstra(unittest.TestCase):
+    def setUp(self):
+        n0 = node(0, 'a', {}, {1: 1, 2: 1})
+        n1 = node(1, 'b', {0: 1}, {3: 1})
+        n2 = node(2, 'c', {0: 1}, {3: 1})
+        n3 = node(3, 'd', {1: 1, 2: 1}, {})
+        self.graph = open_digraph([0], [3], [n0, n1, n2, n3])
+
+    def test_dijkstra_distances(self):
+        dist, prev = self.graph.dijkstra(0, direction=1) 
+        expected_dist = {0: 0, 1: 1, 2: 1, 3: 2}
+        self.assertEqual(dist, expected_dist)
+
+    def test_dijkstra_prev(self):
+        dist, prev = self.graph.dijkstra(0, direction=1)
+        self.assertIn(prev[1], [0])
+        self.assertIn(prev[2], [0]) 
+        self.assertIn(prev[3], [1, 2]) 
+
+    def test_dijkstra_target_stop(self):
+        dist, prev = self.graph.dijkstra(0, tgt=3, direction=1)
+        self.assertEqual(dist[3], 2)
+
 class TestIsCyclic(unittest.TestCase):
 
     def test_acyclic_graph(self):
