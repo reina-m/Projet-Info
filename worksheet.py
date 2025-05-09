@@ -1,3 +1,4 @@
+from modules.bool_circ import *
 from modules.open_digraph import *
 import inspect
 
@@ -92,3 +93,6 @@ print(g5_loaded)
 print("\nAll graphs have been saved, loaded, and printed.\n")
 print("\nDisplaying graph...")
 g3.display(verbose=True) 
+c = bool_circ.random(15, 3, 2)
+print(c)
+c.display()  # si tu as un outil de visualisation graphique

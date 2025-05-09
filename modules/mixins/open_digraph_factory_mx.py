@@ -40,39 +40,29 @@ class OpenDigraphFactoryMixin:
             - edge multiplicities 
             - input/output node markers
         """
-        # open & read
         with open(p, "r") as f:
             data = f.read()
-        # locate top-level braces
         s = data.find("{")
         e = data.rfind("}")
         if s == -1 or e == -1 or s > e:
             raise ValueError("No matching brakets found in DOT file")
 
-        # the portion inside braces
         core = data[s+1:e].strip()
-        # start with an empty graph
         g = cls.empty()
         name_to_id = {}
 
-        # split lines on ';'
         parts = [ln.strip() for ln in core.split(";") if ln.strip()]
 
         for line in parts:
-            # check for an edge
             if "->" in line:
-                # separate any trailing bracketed attributes, e.g. v0->v1 [color=red,mult=2]
                 bracket_part = ""
                 if "[" in line and "]" in line:
-                    # capture bracket text
                     bstart = line.index("[")
                     bend = line.rindex("]")
                     bracket_part = line[bstart+1:bend].strip()
                     line = line[:bstart].strip()
 
-                # now line should be something like 'v0->v1->v2'
                 nodes_list = [x.strip() for x in line.split("->") if x.strip()]
-                # parse edge attributes if any
                 edge_attrs = {}
                 if bracket_part:
                     for a in bracket_part.split(","):
@@ -82,24 +72,18 @@ class OpenDigraphFactoryMixin:
                             v = kv[1].strip().strip('"')
                             edge_attrs[k] = v
 
-                # handle chain edges
                 for i in range(len(nodes_list) - 1):
                     src_name, tgt_name = nodes_list[i], nodes_list[i+1]
-                    # if node undefined, create a placeholder
                     if src_name not in name_to_id:
                         name_to_id[src_name] = g.add_node()
                     if tgt_name not in name_to_id:
                         name_to_id[tgt_name] = g.add_node()
 
-                    # repeat the edge multiple times based on occurrences in the file
                     mult = int(edge_attrs.get('mult', 1))
                     g.add_edges([(name_to_id[src_name], name_to_id[tgt_name])] * mult)
 
-                # (ignore any other edge attrs like color, style, etc.)
 
             else:
-                # node definition
-                # example: v0 [label="X", input=true, color=red]
                 bracket_part = ""
                 if "[" in line and "]" in line:
                     bstart = line.index("[")
@@ -108,7 +92,6 @@ class OpenDigraphFactoryMixin:
                     line = line[:bstart].strip()
 
                 node_name = line.strip()
-                # gather attributes
                 node_attrs = {}
                 if bracket_part:
                     for a in bracket_part.split(","):
@@ -118,18 +101,14 @@ class OpenDigraphFactoryMixin:
                             v = kv[1].strip().strip('"')
                             node_attrs[k] = v
 
-                # if node already known, reuse it; else create
                 if node_name in name_to_id:
                     n_id = name_to_id[node_name]
                 else:
                     n_id = g.add_node()
                     name_to_id[node_name] = n_id
 
-                # set label if found
                 if "label" in node_attrs:
-                    # update node's label
                     g.nodes[n_id].label = node_attrs["label"]
-                # interpret input, output
                 if "input" in node_attrs and node_attrs["input"].lower() in ["true","1"]:
                     g.add_input_id(n_id)
                 if "output" in node_attrs and node_attrs["output"].lower() in ["true","1"]:
@@ -156,9 +135,9 @@ class OpenDigraphFactoryMixin:
         a = [[0] * n for _ in range(n)]
 
         for u, v in self.nodes.items():
-            i = m[u]  # row
+            i = m[u]  
             for w, x in v.children.items():
-                j = m[w]  # column
+                j = m[w]  
                 a[i][j] = x 
 
         return a

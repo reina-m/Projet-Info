@@ -234,46 +234,36 @@ class bool_circ(open_digraph):
     def half_adder_n(cls, n):
         g = open_digraph.empty()
         
-        # Create input nodes (MSB to LSB)
         a_nodes = [g.add_node() for _ in range(n)]
         b_nodes = [g.add_node() for _ in range(n)]
 
         for a in a_nodes: g.add_input_node(a)
         for b in b_nodes: g.add_input_node(b)
 
-        # Initialize carry with 0
         zero = g.add_node(label='0')  
         ci = zero
         sum_nodes = []
         
-        # Process bits from LSB to MSB
         for ai, bi in zip(reversed(a_nodes), reversed(b_nodes)):
-            # Direct XOR for sum without carry
             t = g.add_node(label='^', parents={ai:1, bi:1})
-            # XOR with carry for final sum
             si = g.add_node(label='^', parents={t:1, ci:1})
             sum_nodes.append(si)
 
-            # Generate next carry directly
             c1 = g.add_node(label='&', parents={ai:1, bi:1})
             c2 = g.add_node(label='&', parents={t:1, ci:1})
             ci = g.add_node(label='|', parents={c1:1, c2:1})
 
-        # Create outputs and clean up
         circuit = cls(g)
         
-        # Add outputs in correct order
-        circuit.add_output_node(ci)  # Cout first
-        for s in reversed(sum_nodes):  # Sum bits MSB to LSB
+        circuit.add_output_node(ci)  
+        for s in reversed(sum_nodes):  
             circuit.add_output_node(s)
         
-        # Remove any remaining buffer nodes
         for nid in list(circuit.get_nodes_id()):
             node = circuit.get_node_by_id(nid)
             if (node.get_label() == '' and 
                 nid not in circuit.inputs and 
                 nid not in circuit.outputs):
-                # Reconnect parents to children directly
                 for p_id, p_mult in node.get_parents().items():
                     for c_id, c_mult in node.get_children().items():
                         circuit.add_edge(p_id, c_id, p_mult * c_mult)
@@ -307,7 +297,6 @@ class bool_circ(open_digraph):
             g.add_input_node(x)
         ci = c
         sum_nodes = []
-        # build full adder chain
         for ai, bi in zip(a, b):
             t  = g.add_node(label='^', parents={ai:1, bi:1})
             s  = g.add_node(label='^', parents={t:1, ci:1})
@@ -315,12 +304,10 @@ class bool_circ(open_digraph):
             g1 = g.add_node(label='&', parents={ai:1, bi:1})
             g2 = g.add_node(label='&', parents={t:1, ci:1})
             ci = g.add_node(label='|', parents={g1:1, g2:1})
-        # wrap MSB sum
         msb = sum_nodes[-1]
         o_s = g.add_node()
         g.add_edge(msb, o_s)
         g.add_output_node(o_s)
-        # wrap final carry‐out
         o_c = g.add_node()
         g.add_edge(ci, o_c)
         g.add_output_node(o_c)
@@ -350,22 +337,17 @@ class bool_circ(open_digraph):
         b = [g.add_node() for _ in range(4)]
         c0 = g.add_node()
         for x in a+b+[c0]: g.add_input_node(x)
-        # generate/propagate
         G = [g.add_node(label='&', parents={a[i]:1, b[i]:1}) for i in range(4)]
         P = [g.add_node(label='^', parents={a[i]:1, b[i]:1}) for i in range(4)]
-        # carries
         carries = [c0]
         for i in range(4):
             ti = g.add_node(label='&', parents={P[i]:1, carries[-1]:1})
             ci = g.add_node(label='|', parents={G[i]:1, ti:1})
             carries.append(ci)
-        # sums
         S = [g.add_node(label='^', parents={P[i]:1, carries[i]:1}) for i in range(4)]
-        # wrap Cout
         cout_wrap = g.add_node()
         g.add_edge(carries[4], cout_wrap)
         g.add_output_node(cout_wrap)
-        # wrap sums
         for s in reversed(S):
             o = g.add_node()
             g.add_edge(s,o)
@@ -408,17 +390,13 @@ class bool_circ(open_digraph):
         for blk in range(n):
             block = cls.cla4().copy()
             shift = g.iparallel(block)
-            # reconnect A and B
             for i in range(4):
                 g.add_edge(A[4*blk + i], block.inputs[i] + shift)
                 g.add_edge(B[4*blk + i], block.inputs[4 + i] + shift)
-            # connect the carry in
             g.add_edge(carry, block.inputs[8] + shift)
-            # grab the carry‐out and the 4 sum bits
             carry = block.outputs[0] + shift
             sums.extend(o + shift for o in block.outputs[1:])
 
-        # now wrap just one Cout + all sum bits
         g.set_outputs([])
         cout_wrap = g.add_node()
         g.add_edge(carry, cout_wrap)
@@ -428,7 +406,6 @@ class bool_circ(open_digraph):
             g.add_edge(s, o)
             g.add_output_node(o)
 
-        # restore the correct ordering of the A/B/Cin inputs
         g.set_inputs(real_ins)
         return cls(g)
 
@@ -455,13 +432,9 @@ class bool_circ(open_digraph):
         d = [g.add_node(label='') for _ in range(4)]
         for x in d:
             g.add_input_node(x)
-        # p0 at position 1 covers D0,D1,D3
         p0 = g.add_node(label='^', parents={d[0]:1, d[1]:1, d[3]:1})
-        # p1 at position 2 covers D0,D2,D3
         p1 = g.add_node(label='^', parents={d[0]:1, d[2]:1, d[3]:1})
-        # p2 at position 4 covers D1,D2,D3
         p2 = g.add_node(label='^', parents={d[1]:1, d[2]:1, d[3]:1})
-        # output order: P0,P1,D0,P2,D1,D2,D3
         order = [p0, p1, d[0], p2, d[1], d[2], d[3]]
         for src in order:
             wrap = g.add_node()
@@ -527,7 +500,6 @@ class bool_circ(open_digraph):
         if node.get_label() != '&':
             return False
 
-        # collect input values (parents or, if none, constant-children)
         if node.get_parents():
             vals = [self.get_node_by_id(p).get_label() for p in node.get_parents()]
         else:
@@ -537,7 +509,6 @@ class bool_circ(open_digraph):
             if not vals:
                 return False
 
-        # decide replacement
         if '0' in vals:
             bit = '0'
         elif all(v == '1' for v in vals):
@@ -545,10 +516,8 @@ class bool_circ(open_digraph):
         else:
             return False
 
-        # create new constant
         rep = self.add_node(label=bit)
 
-        # rewire any reachable output-wrappers
         from collections import deque
         q, seen = deque([nid]), set()
         while q:
@@ -938,7 +907,6 @@ class bool_circ(open_digraph):
             elif lbl in ('0', '1'):
                 vals[nid] = int(lbl)
             elif lbl == '':
-                # copy its single‐parent value if any
                 ps = list(self.get_node_by_id(nid).get_parents().keys())
                 if ps:
                     vals[nid] = vals[ps[0]]
@@ -959,7 +927,6 @@ class bool_circ(open_digraph):
                 p = next(iter(node.get_parents()))
                 vals[nid] = 1 - vals[p]
             else:
-                # everything else : zero
                 vals[nid] = 0
 
         return [vals[o] for o in self.outputs]
