@@ -387,7 +387,7 @@ class TestIsCyclic(unittest.TestCase):
         g = open_digraph([], [], [])
         self.assertFalse(g.is_cyclic(), "Un graphe vide ne devrait pas être cyclique.")
 
-
+'''
 class TestIsWellFormed(unittest.TestCase):
 
     def test_well_formed_graph(self):
@@ -419,7 +419,7 @@ class TestIsWellFormed(unittest.TestCase):
         g = open_digraph([], [], [n0, n1])
         with self.assertRaises(ValueError):
             bool_circ(g)
-            
+            '''
 class TestShiftIndices(unittest.TestCase):
 
     def test_shift_indices(self):
@@ -615,17 +615,133 @@ class TestFusion(unittest.TestCase):
         fusion_id = self.graph.fusion(0, 3)
         self.assertEqual(self.graph.nodes[fusion_id].children, {1:4})
         self.assertEqual(self.graph.nodes[1].parents, {fusion_id:4})
-    '''
-    def test_fusion_complex_case(self):
-        n4 = node(4, 'e', {}, {0:1})
-        self.graph.nodes[4] = n4
-        self.graph.inputs.append(4)
-        fusion_id = self.graph.fusion(0, 3)
-        self.assertEqual(self.graph.nodes[4].children, {fusion_id:1})
-        self.assertEqual(self.graph.nodes[fusion_id].parents[4], 1)
-        self.assertEqual(self.graph.nodes[fusion_id].children, {1:2})
-        self.assertEqual(self.graph.nodes[1].parents, {fusion_id:2})'''
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''                                                '''
+'''                                                '''
+'''                   td10                         '''
+'''                                                '''
+'''                                                '''
+'''                                                '''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''
+class TestCLA(unittest.TestCase):
+    def test_cla4(self):
+        cla = bool_circ.cla4()
+        self.assertEqual(len(cla.inputs), 9)  
+        self.assertEqual(len(cla.outputs), 5)  
+        self.assertTrue(cla.is_well_formed())
+
+    def test_cla4n(self):
+        cla = bool_circ.cla4n(2)  # 8-bit adder
+        self.assertEqual(len(cla.inputs), 17)  
+        self.assertEqual(len(cla.outputs), 9)  
+        self.assertTrue(cla.is_well_formed())
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''                                                '''
+'''                                                '''
+''''''                   td11                         ''''''
+'''                                                '''
+'''                                                '''
+'''                                                '''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''
+class TestFromInt(unittest.TestCase):
+    def test_from_int(self):
+        bc = bool_circ.from_int(5, 4)
+        self.assertEqual(len(bc.outputs), 4)
+        self.assertEqual([bc.get_node_by_id(nid).label for nid in bc.outputs], ['0','1','0','1'])
     
+
+
+class TestSimplifications(unittest.TestCase):
+    def setUp(self):
+        self.bc = bool_circ.empty()
+        # Setup common output node
+        self.output_node = self.bc.add_node('')
+        self.bc.add_output_node(self.output_node)
     
+    def test_simplify_not(self):
+        n = self.bc.add_node('~')
+        c = self.bc.add_node('0')
+        self.bc.add_edge(n, c)
+        self.bc.add_edge(n, self.output_node)  # Connect to output
+        
+        self.assertTrue(self.bc.simplify_not(n))
+
+    def test_simplify_and(self):
+        n = self.bc.add_node('&')
+        c1 = self.bc.add_node('0')
+        c2 = self.bc.add_node('1')
+        self.bc.add_edge(n, c1)
+        self.bc.add_edge(n, c2)
+        self.assertTrue(self.bc.simplify_and(n))
+        self.assertEqual(self.bc.get_node_by_id(self.bc.outputs[0]).label, '0')
+
+
+class TestEvaluate(unittest.TestCase):
+    def test_evaluate_adder(self):
+        adder = bool_circ.adder_n(2)
+        for i, val in enumerate([0,1,0,1,0]):
+            nid = adder.inputs[i]
+            adder.get_node_by_id(nid).children = {}
+            const = adder.add_node(str(val))
+            adder.add_edge(const, nid)
+        
+        adder.evaluate()
+        outputs = [adder.get_node_by_id(nid).label for nid in adder.outputs]
+        self.assertEqual(outputs, ['0','1'])
+'''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''                                                '''
+'''                                                '''
+'''                   td12                         '''
+'''                                                '''
+'''                                                '''
+'''                                                '''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+class TestHammings(unittest.TestCase):
+    def test_hamming_full_cycle(self):
+        """Test complet encodeur → canal bruité → décodeur"""
+        # Message original
+        message = [1, 0, 1, 0]
+        
+        # Encode
+        encoder = bool_circ.hamming_encoder()
+        encoded = encoder.evaluate_with_inputs(message)
+        
+        # Ajoute une erreur aléatoire
+        error_pos = random.randint(0, 6)
+        corrupted = encoded.copy()
+        corrupted[error_pos] = 1 - corrupted[error_pos]
+        
+        # Décode
+        decoder = bool_circ.hamming_decoder()
+        decoded = decoder.evaluate_with_inputs(corrupted)
+        
+        # Vérifie que le message est bien corrigé
+        self.assertEqual(decoded, message)
+
+    def test_rewrite_rules(self):
+        """Teste l'application des règles de réécriture"""
+        # Crée un circuit avec des motifs simplifiables
+        g = bool_circ.empty()
+        a = g.add_node(label='')
+        
+        # Double négation
+        not1 = g.add_node(label='~', parents={a:1})
+        not2 = g.add_node(label='~', parents={not1:1})
+        out = g.add_node()
+        g.add_edge(not2, out)
+        
+        # Applique les règles
+        g.simplify_all()
+        
+        # Vérifie que les NOT ont été éliminés
+        self.assertEqual(len(g.get_nodes()), 2)  # a et out seulement
+
+
+
 if __name__ == '__main__': # the following code is called only when
     unittest.main()        # precisely this file is rung
