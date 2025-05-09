@@ -1,37 +1,21 @@
-from modules.open_digraph import *
+from modules.bool_circ import bool_circ
+import os
 
-# Create an empty open_digraph
-g = open_digraph([], [], [])
+def visualize_half_adder(n=4):
+    os.makedirs("images", exist_ok=True)
+    
+    ha = bool_circ.half_adder_n(n)
+    
+    inputs = [0,1,0,1, 0,0,1,1]  # 5 (0101) + 3 (0011)
+    
+    ha.save_as_dot_file("images/adder_structure.dot", verbose=False)
+    
+    result = ha.evaluate_with_inputs(inputs)
+    print(f"Adding {inputs[:n]} ({sum(b<<i for i,b in enumerate(reversed(inputs[:n])))})")
+    print(f"   to {inputs[n:]} ({sum(b<<i for i,b in enumerate(reversed(inputs[n:])))})")
+    print(f"Result: {result} ({sum(b<<i for i,b in enumerate(reversed(result)))})")
 
-# Add nodes manually
-n0 = g.add_node(label="A")  # Component 1
-n1 = g.add_node(label="B")
-n2 = g.add_node(label="C")
-n3 = g.add_node(label="X")  # Component 2
-n4 = g.add_node(label="Y")
+    os.system('dot -Tpng -Gdpi=300 images/adder_structure.dot -o images/adder_structure.png')
 
-# Add edges to form two separate components
-g.add_edge(n0, n1)
-g.add_edge(n1, n2)
-
-g.add_edge(n3, n4)
-
-# Display the original graph
-print("\nOriginal Graph:")
-print(g)
-g.display(verbose=True, filename_prefix="original_graph")
-
-# Test connected_components
-num_components, component_mapping = g.connected_components()
-print(f"\nNumber of Connected Components: {num_components}")
-print("Component Mapping (Node ID -> Component ID):")
-print(component_mapping)
-
-# Test connected_components_subgraphs
-subgraphs = g.connected_components_list()
-print("\nSubgraphs corresponding to connected components:")
-
-for i, subgraph in enumerate(subgraphs):
-    print(f"\nSubgraph {i}:")
-    print(subgraph)
-    subgraph.display(verbose=True, filename_prefix=f"subgraph_{i}")
+if __name__ == "__main__":
+    visualize_half_adder(4)

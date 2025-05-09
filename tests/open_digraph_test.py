@@ -10,12 +10,6 @@ from modules.open_digraph import open_digraph
 from modules.bool_circ import bool_circ
 from modules.matrix import *
 
-# classe pour le test des methodes __init__ : 
-#############################################
-##             TESTS POUR TD1              ##
-#############################################
-
-# EXO 3
 
 class InitTest(unittest.TestCase):
     def test_init_node(self):
@@ -44,7 +38,6 @@ class InitTest(unittest.TestCase):
         self.assertEqual(g.nodes[1].id, 1)
         self.assertEqual(g.nodes[2].id, 2)
 
-# EXO 4
 class StrReprTest(unittest.TestCase):
     def test_str_node(self):
         n = node(1, 'test', {0:1}, {2:1})
@@ -75,7 +68,6 @@ class StrReprTest(unittest.TestCase):
         print("Actual:\n", actual)
         self.assertEqual(actual, expected)
 
-# EXO 5
 class EmptyGraphTest(unittest.TestCase):
     def test_empty_graph(self):
         g = open_digraph.empty()
@@ -83,7 +75,6 @@ class EmptyGraphTest(unittest.TestCase):
         self.assertEqual(g.outputs, [])
         self.assertEqual(g.nodes, {})
 
-# EXO 6
 class CopyTest(unittest.TestCase):
     def test_copy_node(self):
         n = node(1, 'test', {0:1}, {2:1})
@@ -92,7 +83,7 @@ class CopyTest(unittest.TestCase):
         self.assertEqual(n.label, n_copy.label)
         self.assertEqual(n.parents, n_copy.parents)
         self.assertEqual(n.children, n_copy.children)
-        self.assertIsNot(n, n_copy)  # ensure they are different objects
+        self.assertIsNot(n, n_copy)
 
     def test_copy_graph(self):
         n0 = node(0, 'a', {}, {1: 1})
@@ -103,9 +94,8 @@ class CopyTest(unittest.TestCase):
         self.assertEqual(g.inputs, g_copy.inputs)
         self.assertEqual(g.outputs, g_copy.outputs)
         self.assertEqual(len(g.nodes), len(g_copy.nodes))
-        self.assertIsNot(g, g_copy)  # ensure they are different objects
+        self.assertIsNot(g, g_copy)
 
-# EXOS 7 - 8
 class GettersTest(unittest.TestCase):
     def test_getters(self):
         n = node(1, 'test', {0:1}, {2:1})
@@ -126,21 +116,19 @@ class SettersTest(unittest.TestCase):
         n.set_children({7:3})
         self.assertEqual(n.get_children(), {7: 3})
 
-# EXO 10
 class NewIDTest(unittest.TestCase):
     def test_new_id(self):
         g = open_digraph.empty()
-        self.assertEqual(g.new_id(), 1)  # graph is empty, should return 1
+        self.assertEqual(g.new_id(), 1) 
         g.nodes = {1: node(1, 'A', {}, {}), 2: node(2, 'B', {}, {})}
-        self.assertEqual(g.new_id(), 3)  # should return max id + 1
+        self.assertEqual(g.new_id(), 3)
 
-# EXO 12
 class AddNodeTest(unittest.TestCase):
     def test_add_node(self):
         g = open_digraph.empty()
         new_id = g.add_node(label="test", parents={}, children={})
 
-        self.assertIn(new_id, g.nodes)  # ensure the node was added
+        self.assertIn(new_id, g.nodes)
         self.assertEqual(g.nodes[new_id].get_label(), "test")
 
     def test_add_node_with_parents_children(self):
@@ -148,55 +136,45 @@ class AddNodeTest(unittest.TestCase):
         g.add_node("A")
         g.add_node("B")
         new_id = g.add_node("C", parents={1:1}, children={2:1})
-        self.assertIn(new_id, g.nodes)  # new node exists
-        self.assertIn(new_id, g.nodes[1].get_children())  # parent-child link
-        self.assertIn(1, g.nodes[new_id].get_parents())  # reverse link
+        self.assertIn(new_id, g.nodes) 
+        self.assertIn(new_id, g.nodes[1].get_children()) 
+        self.assertIn(1, g.nodes[new_id].get_parents()) 
 
-#############################################
-##          FIN TESTS POUR TD1             ##
-#############################################
-
-#############################################
-##            TESTS POUR TD2               ##
-#############################################
-
-# EXO 1
 class TestNodeMethods(unittest.TestCase):
 
     def setUp(self):
         """Initial setup before each test case."""
-        self.node = node(1, "A", {2: 2, 3: 1}, {4: 2, 5: 1})  # example node
+        self.node = node(1, "A", {2: 2, 3: 1}, {4: 2, 5: 1}) 
 
     def test_remove_parent_once(self):
         """Test that remove_parent_once correctly decreases multiplicity or removes parent."""
         self.node.remove_parent_once(2)
-        self.assertEqual(self.node.parents, {2: 1, 3: 1})  # 2 should have multiplicity 1
+        self.assertEqual(self.node.parents, {2: 1, 3: 1}) 
 
         self.node.remove_parent_once(2)
-        self.assertEqual(self.node.parents, {3: 1})  # 2 should be fully removed
+        self.assertEqual(self.node.parents, {3: 1})
 
         self.node.remove_parent_once(3)
-        self.assertEqual(self.node.parents, {})  # 3 removed, no parents left
+        self.assertEqual(self.node.parents, {})
 
     def test_remove_child_once(self):
         """Test that remove_child_once correctly decreases multiplicity or removes child."""
         self.node.remove_child_once(4)
-        self.assertEqual(self.node.children, {4: 1, 5: 1})  # 4 should have multiplicity 1
+        self.assertEqual(self.node.children, {4: 1, 5: 1})
 
         self.node.remove_child_once(4)
-        self.assertNotIn(4, self.node.children)  # 4 should be fully removed
+        self.assertNotIn(4, self.node.children) 
 
     def test_remove_parent_id(self):
         """Test that remove_parent_id removes all occurrences of a parent."""
         self.node.remove_parent_id(2)
-        self.assertEqual(self.node.parents, {3: 1})  # 2 should be fully removed
+        self.assertEqual(self.node.parents, {3: 1}) 
 
     def test_remove_child_id(self):
         """Test that remove_child_id removes all occurrences of a child."""
         self.node.remove_child_id(4)
-        self.assertEqual(self.node.children, {5: 1})  # 4 should be fully removed
+        self.assertEqual(self.node.children, {5: 1})
 
-# EXO 2 : 
 class TestGraphEdgeRemoval(unittest.TestCase):
 
     def setUp(self):
@@ -209,139 +187,107 @@ class TestGraphEdgeRemoval(unittest.TestCase):
     def test_remove_edge(self):
         """Test that remove_edge removes one occurrence of an edge."""
         self.graph.remove_edge(1, 2)
-        self.assertEqual(self.graph.get_node_by_id(1).get_children(), {2: 1})  # one edge left
+        self.assertEqual(self.graph.get_node_by_id(1).get_children(), {2: 1}) 
         self.graph.remove_edge(1, 2)
-        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children())  # no edge left
+        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children()) 
 
     def test_remove_parallel_edges(self):
         """Test that remove_parallel_edges removes all occurrences of an edge."""
         self.graph.remove_parallel_edges(1, 2)
-        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children())  # 1 -> 2 should be gone
+        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children()) 
 
     def test_remove_node_by_id(self):
         """Test that remove_node_by_id removes a node and all its edges."""
         self.graph.remove_node_by_id(1)
-        self.assertNotIn(1, self.graph.nodes)  # node 1 should be removed
-        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children())  # 0 -> 1 should be gone
-        self.assertNotIn(1, self.graph.get_node_by_id(2).get_parents())  # 2 <- 1 should be gone
+        self.assertNotIn(1, self.graph.nodes)
+        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children()) 
+        self.assertNotIn(1, self.graph.get_node_by_id(2).get_parents()) 
 
     def test_remove_edges(self):
         """Test that remove_edges removes multiple individual edges."""
         self.graph.remove_edges([(0, 1), (1, 2)])
-        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children())  # 0 -> 1 should be gone
-        self.assertEqual(self.graph.get_node_by_id(1).get_children()[2], 1)  # 1 -> 2 should have one left
+        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children()) 
+        self.assertEqual(self.graph.get_node_by_id(1).get_children()[2], 1) 
 
     def test_remove_several_parallel_edges(self):
         """Test that remove_several_parallel_edges removes multiplse edges completely."""
         self.graph.remove_several_parallel_edges([(0, 1), (1, 2)])
-        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children())  # 0 -> 1 gone
-        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children())  # 1 -> 2 gone
-
-# EXO 4 : 
+        self.assertNotIn(1, self.graph.get_node_by_id(0).get_children())
+        self.assertNotIn(2, self.graph.get_node_by_id(1).get_children()) 
+ 
 class TestAddInputOutputNodes(unittest.TestCase):
 
     def setUp(self):
         """Initial setup before each test case."""
         self.graph = open_digraph([], [], [])
-        self.graph.add_node("A")  # id = 0
-        self.graph.add_node("B")  # id = 1
-        self.graph.add_node("C")  # id = 2
+        self.graph.add_node("A")
+        self.graph.add_node("B") 
+        self.graph.add_node("C")
 
     def test_add_output_node(self):
         """Test that add_output_node correctly creates an output node."""
-        self.graph.add_output_node(1)  # create an output node pointing to node 1
-        last_id = max(self.graph.nodes.keys())  # new node id
+        self.graph.add_output_node(1)
+        last_id = max(self.graph.nodes.keys())  
 
-        self.assertIn(last_id, self.graph.get_output_ids())  # should be in outputs
-        self.assertEqual(self.graph.get_node_by_id(last_id).get_parents(), {1: 1})  # should point to 1
+        self.assertIn(last_id, self.graph.get_output_ids())
+        self.assertEqual(self.graph.get_node_by_id(last_id).get_parents(), {1: 1})
 
     def test_add_input_node(self):
         """Test that add_input_node correctly creates an input node."""
-        self.graph.add_input_node(2)  # create an input node pointing to node 2
-        last_id = max(self.graph.nodes.keys())  # new node id
+        self.graph.add_input_node(2)
+        last_id = max(self.graph.nodes.keys())
 
-        self.assertIn(last_id, self.graph.get_input_ids())  # should be in inputs
-        self.assertEqual(self.graph.get_node_by_id(last_id).get_children(), {2: 1})  # should point to 2
+        self.assertIn(last_id, self.graph.get_input_ids())
+        self.assertEqual(self.graph.get_node_by_id(last_id).get_children(), {2: 1}) 
 
     def test_add_output_node_invalid(self):
         """Test that add_output_node raises ValueError if id is invalid."""
         with self.assertRaises(ValueError):
-            self.graph.add_output_node(10)  # id 10 does not exist
+            self.graph.add_output_node(10)
 
     def test_add_input_node_invalid(self):
         """Test that add_input_node raises ValueError if id is invalid."""
         with self.assertRaises(ValueError):
-            self.graph.add_input_node(10)  # id 10 does not exist
+            self.graph.add_input_node(10)
 
-# EXOS 3 ET 5
 class IsWellFormedTest(unittest.TestCase):
-    """
-    Tests for the is_well_formed method.
-    Ensures that:
-      - is_well_formed accepts valid graphs and rejects invalid ones.
-      - Adding or removing a node keeps a well-formed graph.
-      - Adding or removing an edge keeps a well-formed graph (if it doesn't 
-        break input/output node constraints).
-      - Adding an input or output node remains well-formed.
-    """
 
     def test_accepts_valid_graph(self):
-        """A properly connected, labeled graph with valid inputs/outputs should be accepted."""
-        # Example: a -> b
         n0 = node(0, 'a', {}, {1:1})
         n1 = node(1, 'b', {0:1}, {})
         g = open_digraph([0], [1], [n0, n1])
         self.assertTrue(g.is_well_formed(), "A simple valid graph should be well-formed.")
 
     def test_rejects_invalid_graph(self):
-        """
-        Create a graph that is obviously malformed (e.g., an output node isn't 
-        properly connected, or references a non-existent node).
-        """
         n0 = node(0, 'X', {}, {})
         n1 = node(1, 'Y', {}, {})
-        g = open_digraph([0], [1], [n0, n1])  # No edge between input and output
+        g = open_digraph([0], [1], [n0, n1])
         self.assertFalse(g.is_well_formed(), "Graph with unconnected output node should be malformed.")
 
     def test_add_remove_node_keeps_well_formed(self):
-        """
-        Ensure that adding/removing a node maintains a well-formed graph.
-        """
-        # Start with a valid graph
         n0 = node(0, 'A', {}, {1: 1})
         n1 = node(1, 'B', {0: 1}, {})
         g = open_digraph([0], [1], [n0, n1])
         self.assertTrue(g.is_well_formed())
 
-        # Add a new node safely
         new_id = g.add_node("C")
         self.assertTrue(g.is_well_formed(), "Adding a node without edges should keep the graph well-formed.")
 
-        # Now remove that same node
         g.remove_node_by_id(new_id)
         self.assertTrue(g.is_well_formed(), "Removing a node without breaking constraints should be fine.")
 
 
     def test_add_input_output_nodes_keeps_well_formed(self):
-        """
-        Ensure that adding input/output nodes correctly maintains a well-formed graph.
-        """
         g = open_digraph([], [], [])
 
-        # Add a simple node
         a_id = g.add_node("A")
         self.assertTrue(g.is_well_formed())
 
-        # Add an output node that points to 'A'
         g.add_output_node(a_id)
         self.assertTrue(g.is_well_formed(), "Adding an output node pointing to an existing node should stay well-formed.")
 
-        # Add an input node that 'A' points to
         g.add_input_node(a_id)
         self.assertTrue(g.is_well_formed(), "Adding an input node from an existing node should stay well-formed.")
-
-
-
 
 class TestGraph(unittest.TestCase):
     def test_random_int_list(self):
@@ -365,7 +311,6 @@ class TestGraph(unittest.TestCase):
 class TestIsCyclic(unittest.TestCase):
 
     def test_acyclic_graph(self):
-        # Créer un graphe acyclique simple : a -> b -> c
         n0 = node(0, 'a', {}, {1: 1})
         n1 = node(1, 'b', {0: 1}, {2: 1})
         n2 = node(2, 'c', {1: 1}, {})
@@ -374,7 +319,6 @@ class TestIsCyclic(unittest.TestCase):
         self.assertFalse(g.is_cyclic(), "Le graphe ne devrait pas être cyclique.")
 
     def test_cyclic_graph(self):
-        # Créer un graphe cyclique : a -> b -> c -> a
         n0 = node(0, 'a', {2: 1}, {1: 1})
         n1 = node(1, 'b', {0: 1}, {2: 1})
         n2 = node(2, 'c', {1: 1}, {0: 1})
@@ -383,15 +327,12 @@ class TestIsCyclic(unittest.TestCase):
         self.assertTrue(g.is_cyclic(), "Le graphe devrait être cyclique.")
 
     def test_empty_graph(self):
-        # Graphe vide
         g = open_digraph([], [], [])
         self.assertFalse(g.is_cyclic(), "Un graphe vide ne devrait pas être cyclique.")
 
-'''
 class TestIsWellFormed(unittest.TestCase):
 
     def test_well_formed_graph(self):
-        # Créer un graphe bien formé : a -> b -> c
         n0 = node(0, 'a', {}, {1: 1})
         n1 = node(1, 'b', {0: 1}, {2: 1})
         n2 = node(2, 'c', {1: 1}, {})
@@ -400,7 +341,6 @@ class TestIsWellFormed(unittest.TestCase):
         self.assertTrue(g.is_well_formed(), "Le graphe devrait être bien formé.")
 
     def test_malformed_graph(self):
-        # Créer un graphe mal formé : a -> b, mais b n'a pas de parent
         n0 = node(0, 'a', {}, {1: 1})
         n1 = node(1, 'b', {}, {})
         g = open_digraph([0], [1], [n0, n1])
@@ -408,49 +348,31 @@ class TestIsWellFormed(unittest.TestCase):
         self.assertFalse(g.is_well_formed(), "Le graphe ne devrait pas être bien formé.")
 
     def test_empty_graph(self):
-        # Graphe vide
         g = open_digraph([], [], [])
         self.assertTrue(g.is_well_formed(), "Un graphe vide devrait être bien formé.")
-
-    def test_bool_circ_invalid_initialization(self):
-    # Graphe invalide : nœud de copie avec degré entrant != 1
-        n0 = node(0, ' ', {}, {1: 1})  # Nœud de copie sans parent
-        n1 = node(1, 'a', {0: 1}, {})
-        g = open_digraph([], [], [n0, n1])
-        with self.assertRaises(ValueError):
-            bool_circ(g)
-            '''
+            
 class TestShiftIndices(unittest.TestCase):
 
     def test_shift_indices(self):
-        # Créer un graphe simple : a -> b -> c
         n0 = node(0, 'a', {}, {1: 1})
         n1 = node(1, 'b', {0: 1}, {2: 1})
         n2 = node(2, 'c', {1: 1}, {})
         g = open_digraph([0], [2], [n0, n1, n2])
 
-        # Décale les indices de 5
         g.shift_indices(5)
 
-        # Vérifie que les indices ont été décalés
         self.assertEqual(g.get_input_ids(), [5])
         self.assertEqual(g.get_output_ids(), [7])
         self.assertEqual(g.get_nodes_id(), [5, 6, 7])
 
-        # Vérifie que les relations entre les nœuds sont conservées
         self.assertEqual(g.get_node_by_id(5).get_children(), {6: 1})
         self.assertEqual(g.get_node_by_id(6).get_parents(), {5: 1})
         self.assertEqual(g.get_node_by_id(6).get_children(), {7: 1})
         self.assertEqual(g.get_node_by_id(7).get_parents(), {6: 1})
 
-
-
-
-
 class TestOpenDigraphComposition(unittest.TestCase):
 
     def setUp(self):
-        # Create simple graphs for testing
         self.g1 = open_digraph.empty()
         n1 = self.g1.add_node(label="A")
         n2 = self.g1.add_node(label="B")
@@ -616,15 +538,7 @@ class TestFusion(unittest.TestCase):
         self.assertEqual(self.graph.nodes[fusion_id].children, {1:4})
         self.assertEqual(self.graph.nodes[1].parents, {fusion_id:4})
 
-''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'''                                                '''
-'''                                                '''
-'''                   td10                         '''
-'''                                                '''
-'''                                                '''
-'''                                                '''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'''
+
 class TestCLA(unittest.TestCase):
     def test_cla4(self):
         cla = bool_circ.cla4()
@@ -633,19 +547,11 @@ class TestCLA(unittest.TestCase):
         self.assertTrue(cla.is_well_formed())
 
     def test_cla4n(self):
-        cla = bool_circ.cla4n(2)  # 8-bit adder
+        cla = bool_circ.cla4n(2)
         self.assertEqual(len(cla.inputs), 17)  
         self.assertEqual(len(cla.outputs), 9)  
         self.assertTrue(cla.is_well_formed())
 
-''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'''                                                '''
-'''                                                '''
-''''''                   td11                         ''''''
-'''                                                '''
-'''                                                '''
-'''                                                '''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''
 class TestFromInt(unittest.TestCase):
     def test_from_int(self):
         bc = bool_circ.from_int(5, 4)
@@ -657,7 +563,6 @@ class TestFromInt(unittest.TestCase):
 class TestSimplifications(unittest.TestCase):
     def setUp(self):
         self.bc = bool_circ.empty()
-        # Setup common output node
         self.output_node = self.bc.add_node('')
         self.bc.add_output_node(self.output_node)
     
@@ -665,16 +570,19 @@ class TestSimplifications(unittest.TestCase):
         n = self.bc.add_node('~')
         c = self.bc.add_node('0')
         self.bc.add_edge(n, c)
-        self.bc.add_edge(n, self.output_node)  # Connect to output
+        self.bc.add_edge(n, self.output_node)
         
         self.assertTrue(self.bc.simplify_not(n))
 
     def test_simplify_and(self):
-        n = self.bc.add_node('&')
+        n  = self.bc.add_node('&')
         c1 = self.bc.add_node('0')
         c2 = self.bc.add_node('1')
+    
+        self.bc.add_edge(n, self.output_node)
         self.bc.add_edge(n, c1)
         self.bc.add_edge(n, c2)
+        
         self.assertTrue(self.bc.simplify_and(n))
         self.assertEqual(self.bc.get_node_by_id(self.bc.outputs[0]).label, '0')
 
@@ -691,55 +599,36 @@ class TestEvaluate(unittest.TestCase):
         adder.evaluate()
         outputs = [adder.get_node_by_id(nid).label for nid in adder.outputs]
         self.assertEqual(outputs, ['0','1'])
-'''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'''                                                '''
-'''                                                '''
-'''                   td12                         '''
-'''                                                '''
-'''                                                '''
-'''                                                '''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 
 class TestHammings(unittest.TestCase):
     def test_hamming_full_cycle(self):
-        """Test complet encodeur → canal bruité → décodeur"""
-        # Message original
         message = [1, 0, 1, 0]
         
-        # Encode
         encoder = bool_circ.hamming_encoder()
         encoded = encoder.evaluate_with_inputs(message)
         
-        # Ajoute une erreur aléatoire
         error_pos = random.randint(0, 6)
         corrupted = encoded.copy()
         corrupted[error_pos] = 1 - corrupted[error_pos]
         
-        # Décode
         decoder = bool_circ.hamming_decoder()
         decoded = decoder.evaluate_with_inputs(corrupted)
         
-        # Vérifie que le message est bien corrigé
         self.assertEqual(decoded, message)
 
     def test_rewrite_rules(self):
-        """Teste l'application des règles de réécriture"""
-        # Crée un circuit avec des motifs simplifiables
         g = bool_circ.empty()
         a = g.add_node(label='')
-        
-        # Double négation
+
         not1 = g.add_node(label='~', parents={a:1})
         not2 = g.add_node(label='~', parents={not1:1})
         out = g.add_node()
         g.add_edge(not2, out)
         
-        # Applique les règles
         g.simplify_all()
         
-        # Vérifie que les NOT ont été éliminés
-        self.assertEqual(len(g.get_nodes()), 2)  # a et out seulement
+        self.assertEqual(len(g.get_nodes()), 2)
 
 
 

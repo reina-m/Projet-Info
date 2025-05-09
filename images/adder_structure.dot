@@ -1,0 +1,104 @@
+digraph {
+  // Layout settings
+  rankdir=TB;
+  splines=ortho;
+  nodesep=0.5;
+  ranksep=0.5;
+
+  // Input nodes
+  subgraph cluster_inputs {
+    label="Inputs";
+    style=rounded;
+    color=blue;
+    9 [label="A[0]"];
+    10 [label="A[1]"];
+    11 [label="A[2]"];
+    12 [label="A[3]"];
+    13 [label="B[0]"];
+    14 [label="B[1]"];
+    15 [label="B[2]"];
+    16 [label="B[3]"];
+  }
+
+  // Logic gates
+  17 [label="0",shape=box];
+  18 [label="^",shape=circle];
+  19 [label="^",shape=circle];
+  20 [label="&",shape=circle];
+  21 [label="&",shape=circle];
+  22 [label="|",shape=circle];
+  23 [label="^",shape=circle];
+  24 [label="^",shape=circle];
+  25 [label="&",shape=circle];
+  26 [label="&",shape=circle];
+  27 [label="|",shape=circle];
+  28 [label="^",shape=circle];
+  29 [label="^",shape=circle];
+  30 [label="&",shape=circle];
+  31 [label="&",shape=circle];
+  32 [label="|",shape=circle];
+  33 [label="^",shape=circle];
+  34 [label="^",shape=circle];
+  35 [label="&",shape=circle];
+  36 [label="&",shape=circle];
+  37 [label="|",shape=circle];
+
+  // Output nodes
+  subgraph cluster_outputs {
+    label="Outputs";
+    style=rounded;
+    color=red;
+    38 [label="Cout"];
+    39 [label="S[3]"];
+    40 [label="S[2]"];
+    41 [label="S[1]"];
+    42 [label="S[0]"];
+  }
+
+  // Edges
+  9 -> 33;
+  9 -> 35;
+  10 -> 28;
+  10 -> 30;
+  11 -> 23;
+  11 -> 25;
+  12 -> 18;
+  12 -> 20;
+  13 -> 33;
+  13 -> 35;
+  14 -> 28;
+  14 -> 30;
+  15 -> 23;
+  15 -> 25;
+  16 -> 18;
+  16 -> 20;
+  17 -> 19;
+  17 -> 21;
+  18 -> 19;
+  18 -> 21;
+  19 -> 42;
+  20 -> 22;
+  21 -> 22;
+  22 -> 24;
+  22 -> 26;
+  23 -> 24;
+  23 -> 26;
+  24 -> 41;
+  25 -> 27;
+  26 -> 27;
+  27 -> 29;
+  27 -> 31;
+  28 -> 29;
+  28 -> 31;
+  29 -> 40;
+  30 -> 32;
+  31 -> 32;
+  32 -> 34;
+  32 -> 36;
+  33 -> 34;
+  33 -> 36;
+  34 -> 39;
+  35 -> 37;
+  36 -> 37;
+  37 -> 38;
+}

@@ -232,51 +232,54 @@ class bool_circ(open_digraph):
 
     @classmethod
     def half_adder_n(cls, n):
-        """
-        builds an n-bit half adder circuit
-        
-        args:
-            n (int): number of bits for inputs
-            
-        returns:
-            bool_circ: circuit with:
-                - 2n inputs: A[n-1:0], B[n-1:0]
-                - n+1 outputs: Sum[n-1:0], Cout
-                
-        implementation:
-            - uses ripple carry architecture
-            - no carry input (unlike full adder)
-            - outputs sum bits and final carry
-        """
         g = open_digraph.empty()
+        
+        # Create input nodes (MSB to LSB)
         a_nodes = [g.add_node() for _ in range(n)]
         b_nodes = [g.add_node() for _ in range(n)]
 
         for a in a_nodes: g.add_input_node(a)
         for b in b_nodes: g.add_input_node(b)
 
+        # Initialize carry with 0
         zero = g.add_node(label='0')  
         ci = zero
         sum_nodes = []
-        for ai, bi in zip(a_nodes, b_nodes):
+        
+        # Process bits from LSB to MSB
+        for ai, bi in zip(reversed(a_nodes), reversed(b_nodes)):
+            # Direct XOR for sum without carry
             t = g.add_node(label='^', parents={ai:1, bi:1})
+            # XOR with carry for final sum
             si = g.add_node(label='^', parents={t:1, ci:1})
             sum_nodes.append(si)
 
+            # Generate next carry directly
             c1 = g.add_node(label='&', parents={ai:1, bi:1})
             c2 = g.add_node(label='&', parents={t:1, ci:1})
             ci = g.add_node(label='|', parents={c1:1, c2:1})
 
-        cout_output = g.add_node()
-        g.add_edge(ci, cout_output)
-        g.add_output_node(cout_output)
+        # Create outputs and clean up
+        circuit = cls(g)
         
-        for s in reversed(sum_nodes):
-            sum_output = g.add_node()
-            g.add_edge(s, sum_output)
-            g.add_output_node(sum_output)
-
-        return cls(g)
+        # Add outputs in correct order
+        circuit.add_output_node(ci)  # Cout first
+        for s in reversed(sum_nodes):  # Sum bits MSB to LSB
+            circuit.add_output_node(s)
+        
+        # Remove any remaining buffer nodes
+        for nid in list(circuit.get_nodes_id()):
+            node = circuit.get_node_by_id(nid)
+            if (node.get_label() == '' and 
+                nid not in circuit.inputs and 
+                nid not in circuit.outputs):
+                # Reconnect parents to children directly
+                for p_id, p_mult in node.get_parents().items():
+                    for c_id, c_mult in node.get_children().items():
+                        circuit.add_edge(p_id, c_id, p_mult * c_mult)
+                circuit.remove_node_by_id(nid)
+                
+        return circuit
 
     @classmethod
     def adder_n(cls, n):

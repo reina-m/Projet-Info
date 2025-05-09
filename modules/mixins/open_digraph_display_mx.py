@@ -5,90 +5,63 @@ import webbrowser
 class OpenDigraphDisplayMixin:
     """mixin containing display and conversion methods"""
 
-    def save_as_dot_file(self, path, verbose=False):
-        """
-        saves graph in DOT format
-        
-        args:
-            path (str): output file path, must end in .dot
-            verbose (bool): if true, includes node ids in labels
-            
-        returns:
-            none
-            
-        raises:
-            AssertionError: if path doesn't end in .dot
-            
-        format details:
-            - inputs marked with input="true" 
-            - outputs marked with output="true"
-            - node labels included if present
-        """
-        assert path.endswith(".dot"), "path must end with .dot"
-        s = "digraph G {\n\n"
-
-        # Write out all nodes
-        # Write out all nodes
-        #    - If it's an input node, add input="true"
-        #    - If it's an output node, add output="true"
-        #    - If it has a label, use label="..."
-        #    - If verbose, also show \nid=ID
-        for node_id, node in self.nodes.items():
-            # Gather attributes in a small dict
-            attr_dict = {}
-            if node.label:
-                # e.g. label="A"
-                # if verbose we add the ID on a second line
-                if verbose:
-                    attr_dict["label"] = f'{node.label}\\nid={node_id}'
-                else:
-                    attr_dict["label"] = node.label
-            else:
-                # no label
-                if verbose:
-                    attr_dict["label"] = f'{node_id}'
-                else:
-                    attr_dict["label"] = ""
-
-            # mark as input or output
-            if node_id in self.inputs:
-                attr_dict["input"] = "true"
-            if node_id in self.outputs:
-                attr_dict["output"] = "true"
-            
-            if node_id in self.inputs:
-                attr_dict["shape"] = "diamond"
-            elif node_id in self.outputs:
-                attr_dict["shape"] = "box"
-            else:
-                attr_dict["shape"] = "circle"
-            
-            # build final bracket string: e.g. [label="A", input="true"]
-            if attr_dict:
-                # turn dict into a list of key="value"
-                attributes_str = ", ".join(f'{k}="{v}"' for k,v in attr_dict.items())
-                s += f'    v{node_id} [{attributes_str}];\n'
-            else:
-                # if truly no attributes, just v{node_id}
-                s += f'    v{node_id};\n'
-
-        s += "\n"
-
-        #  write edges
-        for node_id, node in self.nodes.items():
-            for child_id, multiplicity in node.get_children().items():
-                if multiplicity <= 1:
-                    # single edge
-                    s += f'    v{node_id} -> v{child_id};\n'
-                else:
-                    # multiple edges
-                    for _ in range(multiplicity):
-                        s += f'    v{node_id} -> v{child_id};\n'
-
-        s += "\n}\n"
-
+    def save_as_dot_file(self, path, verbose=False, layout_hints=True):
+        """saves graph in DOT format with improved layout"""
         with open(path, "w") as f:
-            f.write(s)
+            f.write("digraph {\n")
+            if layout_hints:
+                f.write("  // Layout settings\n")
+                f.write("  rankdir=TB;\n")  # Top to bottom
+                f.write("  splines=ortho;\n")  # Orthogonal edges
+                f.write("  nodesep=0.5;\n")
+                f.write("  ranksep=0.5;\n\n")
+            
+            # Group inputs
+            f.write("  // Input nodes\n")
+            f.write("  subgraph cluster_inputs {\n")
+            f.write("    label=\"Inputs\";\n")
+            f.write("    style=rounded;\n")
+            f.write("    color=blue;\n")
+            for i, nid in enumerate(self.inputs):
+                label = f"{'A' if i < len(self.inputs)//2 else 'B'}[{i%(len(self.inputs)//2)}]"
+                if verbose:
+                    label += f"\n{nid}"
+                f.write(f"    {nid} [label=\"{label}\"];\n")
+            f.write("  }\n\n")
+
+            # Write other nodes
+            f.write("  // Logic gates\n")
+            for node in self.get_nodes():
+                if node.id not in self.inputs and node.id not in self.outputs:
+                    label = node.get_label()
+                    if verbose:
+                        label += f"\n{node.id}"
+                    shape = "circle" if label in ["&", "|", "^"] else "box"
+                    f.write(f"  {node.id} [label=\"{label}\",shape={shape}];\n")
+
+            # Group outputs
+            f.write("\n  // Output nodes\n")
+            f.write("  subgraph cluster_outputs {\n")
+            f.write("    label=\"Outputs\";\n")
+            f.write("    style=rounded;\n")
+            f.write("    color=red;\n")
+            for i, nid in enumerate(self.outputs):
+                label = f"{'Cout' if i==0 else f'S[{len(self.outputs)-i-1}]'}"
+                if verbose:
+                    label += f"\n{nid}"
+                f.write(f"    {nid} [label=\"{label}\"];\n")
+            f.write("  }\n\n")
+
+            # Write edges
+            f.write("  // Edges\n")
+            for node in self.get_nodes():
+                for child, mult in node.get_children().items():
+                    f.write(f"  {node.id} -> {child}")
+                    if mult > 1:
+                        f.write(f" [label=\"{mult}\"]")
+                    f.write(";\n")
+            
+            f.write("}\n")
 
     def display(self, verbose=False, filename_prefix="my_graph"):
         """
