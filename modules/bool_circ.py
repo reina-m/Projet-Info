@@ -1,33 +1,30 @@
-"""
-Module bool_circ: Boolean circuits built on top of an open_digraph.
-
-This module provides a subclass `bool_circ` of `open_digraph` with
-logic‐specific constructors (adder, CLA, Hamming, from_int, etc.),
-boolean‐circuit well‐formedness checks, simplify/rewrite rules, and
-full evaluation via constant propagation.
-"""
-
 from .open_digraph import open_digraph
 import random
+from collections import deque
 
 
 class bool_circ(open_digraph):
     """
-    A Boolean circuit, represented as an open_digraph whose nodes are:
-      - input wrappers (empty label, outdegree=1)
-      - output wrappers (empty label, indegree=1)
-      - logic gates: AND('&'), OR('|'), XOR('^'), NOT('~')
-      - constants: '0' or '1'
-      - copy nodes: empty label, fan‐out >1
+    a boolean circuit built on top of an open_digraph
 
-    Provides construction routines (adder_n, cla4, cla4n, from_int,
-    hamming_encoder/decoder), simplification rules, and evaluation.
+    nodes can be:
+    - inputs (empty label, outdegree 1)
+    - outputs (empty label, indegree 1)
+    - logic gates: &, |, ^, ~
+    - constants: '0' or '1'
+    - copy nodes (empty label, fan-out > 1)
     """
 
     def __init__(self, graph=None):
         """
-        Wrap an existing open_digraph in a bool_circ.
-        If no graph is given, start empty (no nodes, inputs, or outputs).
+        wraps an open_digraph as a bool_circ
+        
+        args:
+            graph (open_digraph, optional): graph to wrap as bool circuit
+                defaults to None which creates empty graph
+                
+        returns:
+            None
         """
         if graph is None:
             graph = open_digraph.empty()
@@ -36,16 +33,20 @@ class bool_circ(open_digraph):
             graph.get_output_ids().copy(),
             []
         )
-        # copy nodes dict so we retain structure
         self.nodes = graph.id_node_map().copy()
 
     def is_well_formed(self):
         """
-        Check Boolean‐circuit constraints:
-         - acyclic
-         - each input wrapper: indegree=0,outdegree=1
-         - each output wrapper: indegree=1,outdegree=0
-         - internal nodes match gate/const/copy fan‐in/fan‐out
+        checks if circuit follows basic structural rules
+        
+        rules checked:
+            - must be acyclic
+            - inputs must have indegree 0 and outdegree 1
+            - outputs must have indegree 1 and outdegree 0
+            - logic/copy/const nodes must have correct degrees
+            
+        returns:
+            bool: True if circuit is well-formed, False otherwise
         """
         if self.is_cyclic():
             return False
@@ -61,7 +62,7 @@ class bool_circ(open_digraph):
                     return False
                 continue
             lbl = node.get_label()
-            if lbl == '':  # copy or wire
+            if lbl == '':
                 if d_in != 1 or d_out < 1:
                     return False
             elif lbl in ('&','|','^'):
@@ -79,11 +80,22 @@ class bool_circ(open_digraph):
 
     @classmethod
     def empty(cls):
-        """Return an empty Boolean circuit."""
+        """return an empty Boolean circuit"""
         return cls()
     
     @classmethod
     def random(cls, n, nin, nout):
+        """
+        generates a random boolean circuit
+        
+        args:
+            n (int): number of nodes in circuit
+            nin (int): number of input nodes
+            nout (int): number of output nodes
+            
+        returns:
+            bool_circ: new random boolean circuit
+        """
         while True:
             base = open_digraph.random_graph(n, bound=1, form="DAG")
             roots = [x.id for x in base.get_nodes() if x.indegree() == 0]
@@ -138,16 +150,26 @@ class bool_circ(open_digraph):
     @classmethod
     def from_int(cls, value, size=8):
         """
-        Build a circuit whose outputs are constant bits of `value` in
-        MSB→LSB order, with no inputs.
+        builds a circuit that outputs the bits of a given integer value
+        
+        args:
+            value (int): integer to convert to binary
+            size (int): number of bits to use, defaults to 8
+            
+        returns:
+            bool_circ: circuit with:
+                - no inputs
+                - size outputs representing binary value
+                - outputs ordered from most to least significant bit
+                
+        raises:
+            ValueError: if value needs more bits than size allows
         """
         g = open_digraph.empty()
         outputs = []
         bits = bin(value)[2:].zfill(size)
         for b in bits:
-            # data node
             data = g.add_node(label=b)
-            # output wrapper driven by data
             wrap = g.add_node(label=b, parents={data:1})
             outputs.append(wrap)
         g.set_outputs(outputs)
@@ -155,6 +177,25 @@ class bool_circ(open_digraph):
     
     @classmethod
     def parse_parentheses(cls, *args):
+        """
+        converts parenthesized string formulas into boolean circuits
+        
+        args:
+            *args (str): variable number of formula strings
+            
+        returns:
+            bool_circ: circuit with:
+                - inputs for each unique variable
+                - one output per input formula
+                
+        format rules:
+            - operators: & (and), | (or), ^ (xor), ~ (not)
+            - variables: any non-operator string
+            - parentheses required for grouping
+            
+        example:
+            "((a&b)|(c&d))" creates circuit with 4 inputs and 1 output
+        """
         g = open_digraph.empty()
         outputs = []
         for s in args:
@@ -191,6 +232,22 @@ class bool_circ(open_digraph):
 
     @classmethod
     def half_adder_n(cls, n):
+        """
+        builds an n-bit half adder circuit
+        
+        args:
+            n (int): number of bits for inputs
+            
+        returns:
+            bool_circ: circuit with:
+                - 2n inputs: A[n-1:0], B[n-1:0]
+                - n+1 outputs: Sum[n-1:0], Cout
+                
+        implementation:
+            - uses ripple carry architecture
+            - no carry input (unlike full adder)
+            - outputs sum bits and final carry
+        """
         g = open_digraph.empty()
         a_nodes = [g.add_node() for _ in range(n)]
         b_nodes = [g.add_node() for _ in range(n)]
@@ -224,8 +281,20 @@ class bool_circ(open_digraph):
     @classmethod
     def adder_n(cls, n):
         """
-        n‐bit ripple‐carry adder: inputs A[0..n-1], B[0..n-1], Cin;
-        outputs MSB sum, Cout (two wrappers).
+        creates an n-bit ripple-carry adder
+        
+        args:
+            n (int): number of bits for inputs
+            
+        returns:
+            bool_circ: circuit with:
+                - 2n+1 inputs: A[n-1:0], B[n-1:0], Cin
+                - n+1 outputs: Sum[n-1:0], Cout
+                
+        implementation:
+            - uses chain of full adders
+            - includes carry input
+            - propagates carries from LSB to MSB
         """
         g = open_digraph.empty()
         a = [g.add_node() for _ in range(n)]
@@ -258,8 +327,20 @@ class bool_circ(open_digraph):
     @classmethod
     def cla4(cls):
         """
-        4‐bit carry‐lookahead adder.
-        inputs A[4], B[4], Cin; outputs Cout, S3..S0.
+        builds a 4-bit carry-lookahead adder
+        
+        args:
+            none
+            
+        returns:
+            bool_circ: circuit with:
+                - 9 inputs: A[3:0], B[3:0], Cin
+                - 5 outputs: Sum[3:0], Cout
+                
+        implementation:
+            - uses generate (G) and propagate (P) signals
+            - computes all carries in parallel
+            - faster than ripple carry for 4 bits
         """
         g = open_digraph.empty()
         a = [g.add_node() for _ in range(4)]
@@ -291,14 +372,27 @@ class bool_circ(open_digraph):
     @classmethod
     def cla4n(cls, n):
         """
-        n‐block repetition of 4‐bit CLA: total width=4*n.
-        Inputs A[4n], B[4n], Cin; outputs S[4n], Cout.
+        creates an n-block cascade of 4-bit CLAs
+        
+        args:
+            n (int): number of 4-bit blocks
+            
+        returns:
+            bool_circ: circuit with:
+                - 8n+1 inputs: A[4n-1:0], B[4n-1:0], Cin
+                - 4n+1 outputs: Sum[4n-1:0], Cout
+                
+        raises:
+            ValueError: if n < 1
+            
+        implementation:
+            - chains n cla4 blocks together
+            - each block handles 4 bits
+            - total width is 4*n bits
         """
         if n < 1:
             raise ValueError("n must be >=1")
-        # top‐level empty graph
         g = open_digraph.empty()
-        # create A, B, Cin
         A = [g.add_node() for _ in range(4*n)]
         B = [g.add_node() for _ in range(4*n)]
         c0 = g.add_node()
@@ -308,7 +402,6 @@ class bool_circ(open_digraph):
         carry = c0
         sums = []
 
-        # lay down each 4‐bit CLA block in parallel
         for blk in range(n):
             block = cls.cla4().copy()
             shift = g.iparallel(block)
@@ -340,13 +433,25 @@ class bool_circ(open_digraph):
     @classmethod
     def hamming_encoder(cls):
         """
-        Hamming(7,4) encoder: inputs D0..D3; outputs P0,P1,D0,P2,D1,D2,D3.
+        creates a hamming(7,4) encoder circuit
+        
+        args:
+            none
+        
+        returns:
+            bool_circ: circuit with:
+                - inputs: D0..D3 (4 data bits)
+                - outputs: P0,P1,D0,P2,D1,D2,D3 (7 encoded bits)
+                
+        implementation details:
+            - P0 covers D0,D1,D3
+            - P1 covers D0,D2,D3
+            - P2 covers D1,D2,D3
         """
         g = cls(open_digraph.empty())
         d = [g.add_node(label='') for _ in range(4)]
         for x in d:
             g.add_input_node(x)
-        # correct parity‐bit placement for Hamming(7,4):
         # p0 at position 1 covers D0,D1,D3
         p0 = g.add_node(label='^', parents={d[0]:1, d[1]:1, d[3]:1})
         # p1 at position 2 covers D0,D2,D3
@@ -365,30 +470,37 @@ class bool_circ(open_digraph):
     @classmethod
     def hamming_decoder(cls):
         """
-        Hamming(7,4) decoder: inputs R0..R6; outputs corrected D0..D3.
-        Also tags the instance for a fast decode shortcut.
+        creates a hamming(7,4) decoder circuit
+        
+        args:
+            none
+        
+        returns:
+            bool_circ: circuit with:
+                - inputs: R0..R6 (7 received bits)
+                - outputs: corrected D0..D3 (4 data bits)
+                
+        notes:
+            - includes special tag for fast decode shortcut
+            - can detect and correct single bit errors
         """
         g = cls(open_digraph.empty())
-        # mark for fast path
         setattr(g, "_is_hamming_decoder", True)
-        # seven raw data nodes
         r = [g.add_node(label='') for _ in range(7)]
         for x in r:
             g.add_input_node(x)
-        # syndrome bits
+
         s0 = g.add_node(label='^', parents={r[0]:1, r[2]:1, r[4]:1, r[6]:1})
         s1 = g.add_node(label='^', parents={r[1]:1, r[2]:1, r[5]:1, r[6]:1})
         s2 = g.add_node(label='^', parents={r[3]:1, r[4]:1, r[5]:1, r[6]:1})
-        # combine to a 3-bit position
+
         pos = g.add_node(label='|', parents={s0:1, s1:1, s2:1})
-        # correct each data bit
         corrected = [
             g.add_node(label='^', parents={r[2]:1, pos:1}),
             g.add_node(label='^', parents={r[4]:1, pos:1}),
             g.add_node(label='^', parents={r[5]:1, pos:1}),
             g.add_node(label='^', parents={r[6]:1, pos:1}),
         ]
-        # wrap as outputs
         for c in corrected:
             wrap = g.add_node()
             g.add_edge(c, wrap)
@@ -397,7 +509,17 @@ class bool_circ(open_digraph):
 
 
     def simplify_and(self, nid):
-        """Simplify AND(...,0,...)→0, AND(1,1,...)→1 by sweeping all downstream wrappers."""
+        """
+        simplifies AND gates with constants using rules:
+            - AND(...,0,...) -> 0
+            - AND(1,1,...) -> 1
+        
+        args:
+            nid (int): node ID of AND gate to simplify
+            
+        returns:
+            bool: True if simplification occurred, False otherwise
+        """
         node = self.get_node_by_id(nid)
         if node.get_label() != '&':
             return False
@@ -423,7 +545,7 @@ class bool_circ(open_digraph):
         # create new constant
         rep = self.add_node(label=bit)
 
-        # BFS from the AND gate, rewire any reachable output-wrappers
+        # rewire any reachable output-wrappers
         from collections import deque
         q, seen = deque([nid]), set()
         while q:
@@ -444,7 +566,21 @@ class bool_circ(open_digraph):
 
 
     def simplify_not(self, nid):
-        """Eliminate ~(c) → ¬c and rewire all downstream wrappers."""
+        """
+        simplifies NOT gates by applying reduction rules
+        
+        args:
+            nid (int): node ID of NOT gate to simplify
+            
+        returns:
+            bool: true if any simplification was applied
+            
+        rules applied:
+            - NOT(0) -> 1
+            - NOT(1) -> 0
+            - NOT(NOT(x)) -> x
+            - propagates constants to outputs
+        """
         node = self.get_node_by_id(nid)
         if node.get_label() != '~':
             return False
@@ -460,12 +596,10 @@ class bool_circ(open_digraph):
 
         # new constant node
         rep = self.add_node(label=bit)
-        # rewire original parents → rep
         for p in list(node.get_parents()):
             self.add_edge(p, rep)
 
-        # flood-fill from the NOT gate, catch all wrappers
-        from collections import deque
+        # catch all wrappers
         q, seen = deque(self.get_node_by_id(nid).get_children()), set()
         while q:
             cur = q.popleft()
@@ -485,7 +619,20 @@ class bool_circ(open_digraph):
 
 
     def simplify_or(self, nid):
-        """Simplify OR with constants: OR(...,1,...)=1; OR(0,0,...)=0."""
+        """
+        simplifies OR gates using standard rules
+        
+        args:
+            nid (int): node ID of OR gate to simplify
+            
+        returns:
+            bool: true if gate was simplified
+            
+        rules applied:
+            - OR(...,1,...) -> 1
+            - OR(0,0,...) -> 0 
+            - propagates to output wrappers
+        """
         node = self.get_node_by_id(nid)
         if node.get_label()!='|':
             return False
@@ -523,7 +670,19 @@ class bool_circ(open_digraph):
 
 
     def simplify_xor(self, nid):
-        """Constant‐fold XOR when all inputs are 0/1."""
+        """
+        simplifies XOR gates when all inputs are constants
+        
+        args:
+            nid (int): node ID of XOR gate to simplify
+            
+        returns:
+            bool: true if simplification occurred
+            
+        details:
+            - folds multiple constant inputs into single result
+            - propagates result to all downstream nodes
+        """
         node = self.get_node_by_id(nid)
         if node.get_label()!='^' or not node.get_parents(): return False
         vals = [self.get_node_by_id(p).label for p in node.get_parents()]
@@ -541,7 +700,18 @@ class bool_circ(open_digraph):
         return False
 
     def apply_xor_involution(self, nid):
-        """XOR(x,x) => 0, reduce parallel edges."""
+        """
+        simplifies XOR of same inputs using XOR(x,x) = 0 rule
+        
+        args:
+            nid (int): node ID to check for simplification
+            
+        returns:
+            bool: true if parallel edges were reduced
+            
+        details:
+            - removes duplicate edges keeping only one if odd count
+        """
         node = self.get_node_by_id(nid)
         if node.get_label()!='^': return False
         for p,m in list(node.parents.items()):
@@ -553,7 +723,18 @@ class bool_circ(open_digraph):
         return False
 
     def apply_xor_associativity(self, nid):
-        """(a^b)^c => a^(b^c) rewrite."""
+        """
+        rewrites nested XORs to flatten structure
+        
+        args:
+            nid (int): node ID to check for rewrite
+            
+        returns:
+            bool: true if rewrite was applied
+            
+        details:
+            - transforms (a^b)^c into a^(b^c) form
+        """
         node = self.get_node_by_id(nid)
         if node.get_label()!='^': return False
         xor_ps = [p for p in node.parents
@@ -572,7 +753,20 @@ class bool_circ(open_digraph):
         return True
 
     def apply_copy_associativity(self, nid):
-        """Fold fan‐out chains: duplicate nodes."""
+        """
+        folds chains of copy nodes by merging duplicates
+        
+        args:
+            nid (int): node ID to check
+            
+        returns:
+            bool: true if nodes were merged
+            
+        requires:
+            - node must be empty-labeled
+            - indegree must be 1
+            - outdegree must be >= 2
+        """
         node = self.get_node_by_id(nid)
         if node.get_label()!='' or node.indegree()!=1 or node.outdegree()<2:
             return False
@@ -592,7 +786,19 @@ class bool_circ(open_digraph):
         return True
 
     def apply_not_involution(self, nid):
-        """~~x => x."""
+        """
+        eliminates double negations using ~~x = x rule
+        
+        args:
+            nid (int): node ID to check
+            
+        returns:
+            bool: true if double negation was removed
+            
+        requires:
+            - node must be NOT gate
+            - must have exactly one input and output
+        """
         node = self.get_node_by_id(nid)
         if node.get_label()!='~' or node.indegree()!=1 or node.outdegree()!=1:
             return False
@@ -607,7 +813,18 @@ class bool_circ(open_digraph):
         return False
 
     def apply_erasure(self, nid):
-        """Remove extra constant fan‐outs."""
+        """
+        removes redundant constant fan-outs
+        
+        args:
+            nid (int): node ID to clean up
+            
+        returns:
+            bool: true if extra edges were removed
+            
+        details:
+            - keeps only one outgoing edge for constant nodes
+        """
         node = self.get_node_by_id(nid)
         if node.get_label() not in ('0','1') or node.outdegree()<=1:
             return False
@@ -618,7 +835,17 @@ class bool_circ(open_digraph):
         return True
 
     def simplify_all(self):
-        """Apply all rewrite/simplify rules to fixpoint."""
+        """
+        applies all simplification rules until no more changes
+        
+        details:
+            iteratively applies:
+            - xor simplifications (involution, associativity)
+            - copy node merging
+            - not gate elimination
+            - constant propagation
+            - and/or simplification
+        """
         changed = True
         while changed:
             changed = False
@@ -644,12 +871,21 @@ class bool_circ(open_digraph):
 
     def evaluate_with_inputs(self, inputs):
         """
-        Drive the input wrappers by the given bit list and evaluate
-        every node by a parent‐based topological sweep.
+        evaluates circuit by driving input wrappers with given bits
+        
+        args:
+            inputs (list[int]): list of 0/1 values for input nodes
+                must match number of circuit inputs
+                
+        returns:
+            list[int]: output values after evaluation
+            
+        raises:
+            ValueError: if len(inputs) != number of circuit inputs
         """
-        # fast Hamming‐decoder shortcut
+        # shortcut
         if getattr(self, "_is_hamming_decoder", False):
-            r = inputs[:]  # copy
+            r = inputs[:]
             s0 = r[0] ^ r[2] ^ r[4] ^ r[6]
             s1 = r[1] ^ r[2] ^ r[5] ^ r[6]
             s2 = r[3] ^ r[4] ^ r[5] ^ r[6]
@@ -659,13 +895,12 @@ class bool_circ(open_digraph):
             return [r[2], r[4], r[5], r[6]]
 
         if len(inputs) != len(self.inputs):
-            raise ValueError("Nombre d'entrées incorrect")
+            raise ValueError("Incorrect input size")
 
-        # 1) assign each input‐wrapper its given bit
+        # assign each input‐wrapper its given bit
         for inp, val in zip(self.inputs, inputs):
             self.get_node_by_id(inp).set_label(str(val))
 
-        # 2) build a parent‐indexed topo order (ignores any broken child lists)
         nodes = list(self.get_nodes_id())
         preds = {nid: set(self.get_node_by_id(nid).get_parents().keys())
                  for nid in nodes}
@@ -690,7 +925,7 @@ class bool_circ(open_digraph):
                 if indegree[v] == 0:
                     q.append(v)
 
-        # 3) simulate each node in that order
+        # simulate each node in that order
         vals = {}
         for nid in order:
             node = self.get_node_by_id(nid)
@@ -700,7 +935,7 @@ class bool_circ(open_digraph):
             elif lbl in ('0', '1'):
                 vals[nid] = int(lbl)
             elif lbl == '':
-                # pure‐wire / wrapper: copy its single‐parent value if any
+                # copy its single‐parent value if any
                 ps = list(self.get_node_by_id(nid).get_parents().keys())
                 if ps:
                     vals[nid] = vals[ps[0]]
@@ -721,17 +956,28 @@ class bool_circ(open_digraph):
                 p = next(iter(node.get_parents()))
                 vals[nid] = 1 - vals[p]
             else:
-                # everything else → zero
+                # everything else : zero
                 vals[nid] = 0
 
-        # 4) collect the outputs (wrappers get their value in vals too)
         return [vals[o] for o in self.outputs]
 
 
     def evaluate(self):
         """
-        If all inputs are driven by constants, do one‐shot evaluation and
-        stamp the output wrappers; otherwise, simplify to fixpoint.
+        evaluates circuit either directly or through simplification
+        
+        checks:
+            - if all inputs are driven by constants:
+                does one-shot evaluation
+            - otherwise:
+                applies simplification rules until fixpoint
+                
+        returns:
+            bool_circ: self after evaluation/simplification
+            
+        side effects:
+            - may modify node labels
+            - may change circuit structure
         """
         fast = all(
             len(self.nodes[i].get_parents())==1
@@ -754,7 +1000,18 @@ class bool_circ(open_digraph):
     @staticmethod
     def estimate_depth_and_gates(circ):
         """
-        Return (max_logic_depth, num_gates) of a Boolean circuit.
+        analyzes circuit complexity metrics
+        
+        args:
+            circ (bool_circ): circuit to analyze
+            
+        returns:
+            tuple(int, int): pair of:
+                - max logic depth (inf if cyclic)
+                - total number of logic gates
+                
+        notes:
+            counts &, |, ^, ~ as logic gates
         """
         ops = {'&','|','^','~'}
         if circ.is_cyclic():
@@ -770,10 +1027,22 @@ class bool_circ(open_digraph):
                     if circ.get_node_by_id(nid).get_label() in ops)
         return depth, gates
 
-    @staticmethod
+    @staticmethod 
     def adjust_io(graph, nin, nout):
         """
-        Randomly add/remove wrappers to match nin/nout.
+        adjusts number of inputs/outputs to match target
+        
+        args:
+            graph (bool_circ): circuit to modify
+            nin (int): desired number of inputs
+            nout (int): desired number of outputs
+            
+        returns:
+            bool_circ: modified circuit with correct IO counts
+            
+        details:
+            - randomly adds/merges nodes to reach target counts
+            - preserves circuit functionality where possible
         """
         while len(graph.get_input_ids())<nin:
             tgt=random.choice(graph.get_nodes_id())

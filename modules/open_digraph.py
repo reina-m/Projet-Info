@@ -255,16 +255,24 @@ class open_digraph:  # for open directed graph
             raise AssertionError("asserrt_is_well_formed : graph is not well-formed.")
 
     def is_cyclic(self):
-       """
-       Vérifie si le graphe contient un cycle.
-       Returns: True si le graphe est cyclique, False sinon.
-       """
-       copy = self.copy()
-       in_degree = {node_id: node.indegree() for node_id, node in copy.nodes.items()}
-       q = [node_id for node_id, deg in in_degree.items() if deg == 0]
+        """
+        checks if graph contains any cycles using topological sort approach
+        
+        args:
+            none
+            
+        returns:
+            bool: true if graph contains cycle, false if acyclic
+            
+        implementation:
+            uses degree counting and node removal to detect cycles
+        """
+        copy = self.copy()
+        in_degree = {node_id: node.indegree() for node_id, node in copy.nodes.items()}
+        q = [node_id for node_id, deg in in_degree.items() if deg == 0]
 
 
-       while q:
+        while q:
            node_id = q.pop(0)  #
            for child_id in copy.nodes[node_id].get_children():
                in_degree[child_id] -= 1
@@ -273,23 +281,28 @@ class open_digraph:  # for open directed graph
            copy.remove_node_by_id(node_id)
 
 
-       return len(copy.nodes) > 0
+        return len(copy.nodes) > 0
     
     
     def shift_indices(self, n: int):
         """
-        Décale tous les indices des nœuds du graphe de n unités.
-
-        Paramètre:
-        - n : entier, le décalage à appliquer aux indices des nœuds.
-              Peut être négatif.
-
-        Vérifie que le décalage n’entraîne pas de collisions d'indices.
-        Si tel est le cas, une exception est levée.
+        shifts all node indices by given offset
+        
+        args:
+            n (int): amount to shift indices by (can be negative)
+            
+        returns:
+            none
+            
+        raises:
+            ValueError: if shift would cause index collisions
+            
+        notes:
+            updates all node ids, parent/child references, inputs and outputs
         """
         new_ids = {node_id: node_id + n for node_id in self.nodes}
         if len(set(new_ids.values())) < len(new_ids):
-            raise ValueError("Le décalage entraîne des collisions d'indices.")
+            raise ValueError("Indice collisions.")
         new_nodes = {}
         for node_id, node in self.nodes.items():
             new_id = new_ids[node_id]
@@ -308,16 +321,26 @@ class open_digraph:  # for open directed graph
 
     def min_id(self):
         """
-        Retourne:
-        - L'ID du nœud avec l'ID le plus bas, None si le graphe est vide.
+        gets smallest node id in graph
+        
+        args:
+            none
+            
+        returns:
+            int: smallest node id, or None if graph is empty
         """
         return min(self.nodes.keys()) if self.nodes else None
 
 
     def max_id(self):
         """
-        Retourne:
-        - L'ID du nœud avec l'ID le plus haut, None si le graphe est vide.
+        gets largest node id in graph
+        
+        args:
+            none
+            
+        returns:
+            int: largest node id, or None if graph is empty
         """
         return max(self.nodes.keys()) if self.nodes else None
     
@@ -334,9 +357,18 @@ class open_digraph:  # for open directed graph
             raise ValueError("add_output_node : Invalid given id")  
 
     def node_to_index(self):
-        '''
-        Return un dictionnaire associant chaque ID de nœud à un entier unique.
-        '''
+        """
+        creates mapping from node ids to consecutive indices
+        
+        args:
+            none
+            
+        returns:
+            dict: mapping from node id to index in range(0,n)
+            
+        notes:
+            useful for converting to matrix representation
+        """
         return {node: idx for idx, node in enumerate(sorted(self.nodes.keys()))}
 
     def iparallel(self, g):
@@ -461,9 +493,19 @@ class open_digraph:  # for open directed graph
         ) for i in range(n)]
     
     def adjacency_matrix(self):
-        '''
-        retourne la matrice d'adjacence du graphe (en ignorant inputs et outputs).
-        '''
+        """
+        converts graph to adjacency matrix format
+        
+        args:
+            none
+            
+        returns:
+            list[list[int]]: matrix where entry [i][j] is number of edges i->j
+            
+        notes:
+            - ignores input/output nodes
+            - uses node_to_index() for consistent ordering
+        """
         n = len(self.nodes)
         m = self.node_to_index()
         a = [[0] * n for _ in range(n)]
@@ -477,7 +519,24 @@ class open_digraph:  # for open directed graph
         return a
     
     def save_as_dot_file(self, path, verbose=False):
-
+        """
+        saves graph in DOT format
+        
+        args:
+            path (str): output file path, must end in .dot
+            verbose (bool): if true, includes node ids in labels
+            
+        returns:
+            none
+            
+        raises:
+            AssertionError: if path doesn't end in .dot
+            
+        format details:
+            - inputs marked with input="true" 
+            - outputs marked with output="true"
+            - node labels included if present
+        """
         assert path.endswith(".dot"), "path must end with .dot"
         s = "digraph G {\n\n"
 
@@ -546,8 +605,18 @@ class open_digraph:  # for open directed graph
 
     def display(self, verbose=False, filename_prefix="my_graph"):
         """
-        Saves the graph to a fixed .dot file, converts it to a PNG using Graphviz,
-        then opens the PNG in the default viewer (on macOS, Preview).
+        visualizes graph by converting to PNG and opening in viewer
+        
+        args:
+            verbose (bool): if true, includes node ids in labels
+            filename_prefix (str): prefix for temporary files
+            
+        returns:
+            none
+            
+        requires:
+            - graphviz dot command installed
+            - webbrowser module for opening PNG
         """
         dot_path = f"{filename_prefix}.dot"
         png_path = f"{filename_prefix}.png"
@@ -562,10 +631,22 @@ class open_digraph:  # for open directed graph
     #############################################
     ##                 Direction               ##
     #############################################
-    def dijkstra(self, src, tgt, direction=None):
+    def dijkstra(self, src, tgt=None, direction=None):
         """
-        Implémentation de l'algorithme de Dijkstra pour un graphe orienté.
-
+        finds shortest paths using dijkstra's algorithm
+        
+        args:
+            src (int): source node id
+            tgt (int, optional): target node id
+            direction (int, optional): 1 for forward, -1 for backward, None for both
+            
+        returns:
+            tuple(dict, dict):
+                - distances from source to all nodes
+                - predecessor map for path reconstruction
+                
+        implementation:
+            uses uniform edge weights of 1
         """
         Q = [src]
         dist = {src: 0}
@@ -604,14 +685,34 @@ class open_digraph:  # for open directed graph
 
     def shortest_path(self, src, tgt):
         """
-        Reconstitue le plus court chemin entre src et tgt.
+        finds shortest path length between two nodes
+        
+        args:
+            src (int): source node id
+            tgt (int): target node id
+            
+        returns:
+            int: length of shortest path from src to tgt
+            
+        implementation:
+            uses dijkstra's algorithm in both directions
         """
         return self.dijkstra(src, tgt, direction=0)[0][tgt]
 
 
     def ancestors_in_common(self, u, v):
         """
-        Retourne un dictionnaire des ancêtres communs de u et v avec leurs distances respectives.
+        finds common ancestors of two nodes with distances
+        
+        args:
+            u (int): first node id
+            v (int): second node id
+            
+        returns:
+            dict: mapping ancestor -> (dist_to_u, dist_to_v)
+            
+        implementation:
+            uses backward dijkstra search from both nodes
         """
         dist_u, _ = self.dijkstra(u, direction=-1)  
         dist_v, _ = self.dijkstra(v, direction=-1) 
@@ -628,7 +729,7 @@ class open_digraph:  # for open directed graph
         sorts a graph topologically 
         '''
         if self.is_cyclic():
-            raise ValueError("Le graphe est cyclique")
+            raise ValueError("the graph is cyclic")
 
         graph_copy = self.copy()
         l = [] 
@@ -636,7 +737,7 @@ class open_digraph:  # for open directed graph
         while graph_copy.nodes:
             co_feuilles = [node_id for node_id, node in graph_copy.nodes.items() if not node.parents]
             if not co_feuilles:  
-                raise ValueError("Le graphe devrait être acyclique mais nope.")
+                raise ValueError("the graph is cyclic")
             l.append(co_feuilles)
             for node_id in co_feuilles:
                 graph_copy.remove_node_by_id(node_id)
@@ -692,24 +793,37 @@ class open_digraph:  # for open directed graph
 
     def fusion(self, id1, id2, new_label=None):
         """
-        Fusionne deux nœuds en un nouveau nœud qui hérite de toutes les connexions.
-        Gère correctement les connexions directes entre les nœuds à fusionner.
+        merges two nodes into one, preserving connections
+        
+        args:
+            id1 (int): first node to merge
+            id2 (int): second node to merge  
+            new_label (str, optional): label for merged node
+            
+        returns:
+            int: id of new merged node
+            
+        raises:
+            ValueError: if nodes don't exist or are the same
+            
+        notes:
+            - inherits all connections from both nodes
+            - handles parallel edges properly
+            - updates input/output lists
         """
         if id1 not in self.nodes:
-            raise ValueError("Le premier id de nœud n'existe pas dans le graphe")
+            raise ValueError("fusion : the first node id does not exist in the graph")
         if id2 not in self.nodes:
-            raise ValueError("Le second id de nœud n'existe pas dans le graphe")
+            raise ValueError("fusion : the second node id does not exist in the graph")
         if id1 == id2:
-            raise ValueError("Les deux nœuds sont les mêmes")
+            raise ValueError("fusion : the two node ids are the same")
 
         fusion_label = new_label or self.nodes[id1].label
         fusion_id = self.add_node(fusion_label)
 
-        # Connexions du futur nœud fusionné
         fusion_parents = {}
         fusion_children = {}
 
-        # Récupérer les connexions des deux nœuds à fusionner
         for node_id in [id1, id2]:
             for parent_id, mult in self.nodes[node_id].parents.items():
                 if parent_id != id1 and parent_id != id2:
@@ -718,26 +832,19 @@ class open_digraph:  # for open directed graph
                 if child_id != id1 and child_id != id2:
                     fusion_children[child_id] = fusion_children.get(child_id, 0) + mult
 
-        # Rediriger les parents vers fusion_id
         for parent_id, mult in fusion_parents.items():
             self.nodes[parent_id].children[fusion_id] = mult
             self.nodes[parent_id].children.pop(id1, None)
             self.nodes[parent_id].children.pop(id2, None)
 
-        # Rediriger les enfants vers fusion_id
         for child_id, mult in fusion_children.items():
             self.nodes[child_id].parents[fusion_id] = mult
             self.nodes[child_id].parents.pop(id1, None)
             self.nodes[child_id].parents.pop(id2, None)
 
-        # Mise à jour du nouveau nœud fusionné
         self.nodes[fusion_id].parents = fusion_parents
         self.nodes[fusion_id].children = fusion_children
 
-        # Gérer les boucles éventuelles (connexions entre id1 et id2)
-        # Un nœud pourrait être parent et enfant de l'autre
-
-        # Mettre à jour les inputs et outputs
         for tmp_list in [self.inputs, self.outputs]:
             modified = False
             if id1 in tmp_list:
@@ -756,10 +863,36 @@ class open_digraph:  # for open directed graph
 
     @classmethod
     def empty(cls):
+        """
+        creates empty graph with no nodes
+        
+        args:
+            none
+            
+        returns:
+            open_digraph: new empty graph
+        """
         return cls([], [], [])
     
     @classmethod
     def from_dot_file(cls, p):
+        """
+        creates graph from DOT file
+        
+        args:
+            path (str): path to DOT file
+            
+        returns:
+            open_digraph: parsed graph
+            
+        raises:
+            ValueError: if file format is invalid
+            
+        supports:
+            - node labels and attributes
+            - edge multiplicities 
+            - input/output node markers
+        """
         # open & read
         with open(p, "r") as f:
             data = f.read()
@@ -824,7 +957,7 @@ class open_digraph:  # for open directed graph
                 if "[" in line and "]" in line:
                     bstart = line.index("[")
                     bend = line.rindex("]")
-                    bracket_part = line[bstart+1:bend].strip()
+                    bracket_part = line[bstart+1[bend].strip()]
                     line = line[:bstart].strip()
 
                 node_name = line.strip()
@@ -859,14 +992,19 @@ class open_digraph:  # for open directed graph
     
     @classmethod
     def graph_from_adjacency_matrix(self, matrix):
-        '''
-        convertit une matrice d'adjacence en un multigraphe.
-        param: Matrice d'adjacence (liste de listes d'entiers).
-        return: Un multigraphe représenté par la matrice d'adjacence.
-        convertit une matrice d'adjacence en un multigraphe.
-        param: Matrice d'adjacence (liste de listes d'entiers).
-        return: Un multigraphe représenté par la matrice d'adjacence.
-        '''
+        """
+        converts adjacency matrix to graph
+        
+        args:
+            matrix (list[list[int]]): adjacency matrix with edge counts
+            
+        returns:
+            open_digraph: equivalent graph representation
+            
+        notes:
+            - entry [i][j] gives number of edges from node i to j
+            - creates nodes with empty labels
+        """
         g = open_digraph([], [], [])  # create an empty graph
         n = len(matrix)
         node_ids = {}
@@ -885,15 +1023,28 @@ class open_digraph:  # for open directed graph
     
     @classmethod
     def random_graph(cls, n, bound, inputs=0, outputs= 0, form = "free"):
-        ''' 
-            return un graphe aléatoire suivant les contraintes spécifiées.
-
-            n: le nombre de nœuds 
-            bound: la borne supérieure pour les entiers générés (entier positif).
-            inputs: le nombre de nœuds d'entrée et outputs, le nombre de nœuds de sortie (entier positif).
-            form: Forme du graphe ("free", "DAG", "oriented", "loop-free", "undirected", "loop-free undirected").
-
-        '''
+        """
+        generates random graph with given parameters
+        
+        args:
+            n (int): number of nodes
+            bound (int): maximum edge multiplicity
+            inputs (int): number of input nodes
+            outputs (int): number of output nodes
+            form (str): graph type constraint:
+                "free" - no constraints
+                "DAG" - directed acyclic
+                "oriented" - max one edge between nodes
+                "loop-free" - no self-loops
+                "undirected" - symmetric edges
+                "loop-free undirected" - symmetric without loops
+                
+        returns:
+            open_digraph: random graph meeting constraints
+            
+        raises:
+            ValueError: if form unknown or io nodes > total nodes
+        """
         
 
         if form == "free":
@@ -909,15 +1060,14 @@ class open_digraph:  # for open directed graph
         elif form == "loop-free undirected":
             matrix = random_symetric_int_matrix(n, bound, null_diag=True)
         else:
-            raise ValueError("Graphe inconnue")
+            raise ValueError("unrecognized form")
         
         graph = cls.graph_from_adjacency_matrix(matrix)
         nodes = list(graph.nodes.keys())
         if inputs > len(nodes) or outputs > len(nodes):
-            raise ValueError("depasse le nombre de noeuds")
+            raise ValueError("inputs and outputs must be less than the number of nodes")
         
         graph.inputs = random.sample(nodes, inputs)
         remaining_nodes = [n for n in nodes if n not in graph.inputs]
         graph.outputs = random.sample(remaining_nodes, outputs)
         return graph
-    
